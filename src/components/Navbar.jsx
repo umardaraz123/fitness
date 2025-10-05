@@ -1,0 +1,148 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+// import { Search, ShoppingCart, User } from 'lucide-react';
+import Logo from '../assets/images/logo.svg';
+import User from '../assets/images/user.svg';
+import Search from '../assets/images/search.svg';
+import Cart from '../assets/images/cart.svg';
+
+const Navbar = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Check if user is on dashboard pages
+  const isDashboard = location.pathname.startsWith('/dashboard');
+  
+  // Mock user data - in real app this would come from auth context
+  const userData = {
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    avatar: '/src/assets/images/user1.jpg' // Using one of the available user images
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    // Clear user session
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userData');
+    
+    // Redirect to home page
+    navigate('/');
+    setShowUserDropdown(false);
+  };
+
+  const handleProfileClick = () => {
+    navigate('/dashboard/edit-profile');
+    setShowUserDropdown(false);
+  };
+
+  const handleDashboardClick = () => {
+    navigate('/dashboard/my-orders');
+    setShowUserDropdown(false);
+  };
+
+  return (
+    <nav className="navbar navbar-expand-lg navbar-light bg-transparent">
+      <div className="container">
+        <Link className="navbar-brand" to="/">
+          <img src={Logo} alt="Logo"  />
+        </Link>
+        <div className="navbar-nav mx-auto">
+          <Link className="nav-link" to="/">Home</Link>
+          <Link className="nav-link" to="/shop">Shop</Link>
+          <Link className="nav-link" to="/fitness-programs">Fitness Programs</Link>
+          <Link className="nav-link" to="/meals">Meals</Link>
+          <Link className="nav-link" to="/membership">Membership</Link>
+        </div>
+        <div className="d-flex align-items-center">
+          <button className="btn btn-link text-dark me-3" style={{ border: 'none', background: 'transparent' }}>
+            <img src={Search} alt="Search" />
+          </button>
+          <Link to="/cart" className="btn btn-link text-dark me-3" style={{ border: 'none', background: 'transparent' }}>
+            <img src={Cart} alt="Cart" />
+          </Link>
+          
+          {isDashboard ? (
+            // User Avatar Dropdown for Dashboard
+            <div className="user-avatar-dropdown" ref={dropdownRef}>
+              <button 
+                className={`avatar-button ${showUserDropdown ? 'active' : ''}`}
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+              >
+                <img 
+                  src={userData.avatar} 
+                  alt={userData.name}
+                  className="avatar-image"
+                />
+                <span className="avatar-name">
+                  {userData.name}
+                </span>
+                <svg 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2"
+                  className="avatar-arrow"
+                >
+                  <polyline points="6,9 12,15 18,9"></polyline>
+                </svg>
+              </button>
+              
+              {showUserDropdown && (
+                <div className="dropdown-menu">
+                  <div className="user-info">
+                    <div className="user-name">{userData.name}</div>
+                    <div className="user-email">{userData.email}</div>
+                  </div>
+                  
+                  <button onClick={handleDashboardClick} className="dropdown-item">
+                    📊 Dashboard
+                  </button>
+                  
+                  <button onClick={handleProfileClick} className="dropdown-item">
+                    ⚙️ Edit Profile
+                  </button>
+                  
+                  <Link to="/" className="dropdown-item" onClick={() => setShowUserDropdown(false)}>
+                    🏠 Home
+                  </Link>
+                  
+                  <button onClick={handleLogout} className="dropdown-item logout">
+                    🚪 Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            // Regular user icon for non-dashboard pages
+            <>
+              <button className="btn btn-link text-dark me-3" style={{ border: 'none', background: 'transparent' }}>
+                <img src={User} alt="User" />
+              </button>
+              <Link to="/register" className="button">Register</Link>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
