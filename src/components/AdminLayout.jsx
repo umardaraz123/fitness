@@ -1,26 +1,68 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 
 const AdminLayout = () => {
+  const location = useLocation();
+
   return (
-    <div className="container-fluid">
-      <div className="row">
-        <nav className="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-          <div className="position-sticky">
-            <ul className="nav flex-column">
+    <div className="admin-layout">
+      {/* Left Sidebar */}
+      <div className="admin-sidebar">
+        {/* FitNation Logo */}
+        <div className="sidebar-header">
+          <h2 className="logo">FitNation</h2>
+        </div>
+
+        {/* User Profile */}
+        <div className="sidebar-profile">
+          <div className="profile-avatar">
+            <img src="/src/assets/images/user1.jpg" alt="Andrew Smith" />
+          </div>
+          <div className="profile-info">
+            <span className="profile-label">WORKOUT PLAN TRAINER</span>
+            <span className="profile-name">Andrew Smith</span>
+          </div>
+        </div>
+
+        {/* Navigation Menu */}
+        <nav className="sidebar-nav">
+          <div className="nav-section">
+            <span className="nav-label">MAIN</span>
+            <ul className="nav-list">
               <li className="nav-item">
-                <Link className="nav-link" to="/admin">Dashboard</Link>
+                <Link 
+                  to="/admin" 
+                  className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">👥</span>
+                  <span className="nav-text">Clients</span>
+                </Link>
               </li>
               <li className="nav-item">
-                <Link className="nav-link" to="/admin/page">Page</Link>
+                <Link 
+                  to="/admin/messages" 
+                  className={`nav-link ${location.pathname === '/admin/messages' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">💬</span>
+                  <span className="nav-text">Messages</span>
+                </Link>
               </li>
-              {/* Add more admin links here */}
             </ul>
           </div>
         </nav>
-        <main className="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-          <Outlet />
-        </main>
+
+        {/* Logout */}
+        <div className="sidebar-footer">
+          <button className="logout-btn">
+            <span className="logout-icon">🚪</span>
+            <span className="logout-text">Logout Account</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="admin-main">
+        <Outlet />
       </div>
     </div>
   );

@@ -6,6 +6,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminPage from './pages/AdminPage';
+import Messages from './pages/Messages';
 import ForgotPassword from './pages/ForgotPassword';
 import ConfirmPassword from './pages/ConfirmPassword';
 import AuthCode from './pages/AuthCode';
@@ -72,6 +73,7 @@ function AppContent() {
         </Route>
         <Route path="/admin/*" element={<AdminLayout />}> 
           <Route index element={<AdminDashboard />} />
+          <Route path="messages" element={<Messages />} />
           <Route path="page" element={<AdminPage />} />
         </Route>
       </Routes>
