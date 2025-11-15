@@ -49,6 +49,57 @@ const AdminLayout = () => {
               </li>
             </ul>
           </div>
+          
+          <div className="nav-section">
+            <span className="nav-label">E-COMMERCE</span>
+            <ul className="nav-list">
+              <li className="nav-item">
+                <Link 
+                  to="/admin/products" 
+                  className={`nav-link ${location.pathname === '/admin/products' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📦</span>
+                  <span className="nav-text">Products</span>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link 
+                  to="/admin/categories" 
+                  className={`nav-link ${location.pathname === '/admin/categories' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📁</span>
+                  <span className="nav-text">Categories</span>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link 
+                  to="/admin/workouts" 
+                  className={`nav-link ${location.pathname === '/admin/workouts' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">💪</span>
+                  <span className="nav-text">Workouts</span>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link 
+                  to="/admin/meals" 
+                  className={`nav-link ${location.pathname === '/admin/meals' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">🍽️</span>
+                  <span className="nav-text">Meals</span>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link 
+                  to="/admin/plans" 
+                  className={`nav-link ${location.pathname === '/admin/plans' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📋</span>
+                  <span className="nav-text">Plans</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
         </nav>
 
         {/* Logout */}

@@ -1,5 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { productAPI, mealAPI, planAPI } from "../services/api.service";
 import ShopIcon from "../assets/images/shop.svg";
+
+// Helper function to get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  // Check if imagePath is a string
+  if (typeof imagePath !== 'string') return null;
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // Handle file system paths (e.g., /home/himaqjjt/startuppakistan.himalayatool.com/storage/uploads/...)
+  if (imagePath.includes('/storage/uploads/')) {
+    const baseUrl = 'https://startuppakistan.himalayatool.com';
+    const storagePath = imagePath.substring(imagePath.indexOf('/storage/uploads/'));
+    return `${baseUrl}${storagePath}`;
+  }
+  // Construct full URL from base domain for relative paths
+  const baseUrl = 'https://startuppakistan.himalayatool.com';
+  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  return `${baseUrl}${cleanPath}`;
+};
 import Cat1 from "../assets/images/cat1.png";
 import Cat2 from "../assets/images/cat2.png";
 import Cat3 from "../assets/images/cat3.png";
@@ -34,82 +57,163 @@ import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
-const productImages = [Prod1, Prod2, Prod3, Prod4];
-const products = Array.from({ length: 16 }, (_, i) => ({
-  id: i + 1,
-  name: "Optimum Nutrition Whey Protein",
-  price: "Rs.2000",
-  desc: "Fuel your workouts and speed up recovery with high-quality whey protein isolate. Packed...",
-  reviews: 250,
-  image: productImages[i % 4],
-}));
-const mealImages = [Meal1, Meal2, Meal3, Meal4, Meal5, Meal6];
-const meals = [
-  {
-    image: Meal1,
-    name: 'Greek Salad with Feta',
-    desc: 'Crisp cucumbers, tomatoes, olives, and feta cheese tossed in olive oil for a light yet filling option.',
-    price: 'Rs.1200',
-  },
-  {
-    image: Meal2,
-    name: 'Grilled Chicken & Quinoa Bowl',
-    desc: 'A lean protein-packed meal with fluffy quinoa, fresh greens, and a light dressing for all-day energy.',
-    price: 'Rs.1500',
-  },
-  {
-    image: Meal3,
-    name: 'PRO Steamed Salmon with Veggies',
-    desc: 'Omega-3 rich salmon paired with broccoli, carrots, and a squeeze of lemon for clean nutrition.',
-    price: 'Rs.1700',
-  },
-  {
-    image: Meal4,
-    name: 'Paneer Tikka Salad',
-    desc: 'High-protein paneer tikka served on a bed of crisp salad for vegetarians.',
-    price: 'Rs.1100',
-  },
-  {
-    image: Meal5,
-    name: 'Egg White Omelette',
-    desc: 'Fluffy egg white omelette loaded with veggies for a light, protein-rich meal.',
-    price: 'Rs.900',
-  },
-  {
-    image: Meal6,
-    name: 'Tofu Stir Fry',
-    desc: 'Tofu and mixed vegetables stir-fried in a savory sauce for a vegan delight.',
-    price: 'Rs.1000',
-  },
-];
-const featuredPrograms = [
-  {
-    title: "Fitness Plans",
-    desc: "Tailored workouts based on your goals, fitness level, and lifestyle.",
-    image: Featured1,
-  },
-  {
-    title: "SPersonalized Training Plans",
-    desc: "Tailored workouts based on your goals, fitness level, and lifestyle.",
-    image: Featured2,
-  },
-  {
-    title: "Personalized Training Plans",
-    desc: "Tailored workouts based on your goals, fitness level, and lifestyle.",
-    image: Featured3,
-  },
-  {
-    title: "Cardio Burn",
-    desc: "Cardio-focused plan for heart health and calorie burn.",
-    image: Featured4,
-  },
-  {
-    title: "Cardio Burn",
-    desc: "Tailored workouts based on your goals, fitness level, and lifestyle.",
-    image: Featured5,
-  },
-];
 const Landing = () => {
+  const navigate = useNavigate();
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  const [meals, setMeals] = useState([]);
+  const [loadingMeals, setLoadingMeals] = useState(false);
+  const [fitnessPlans, setFitnessPlans] = useState([]);
+  const [loadingFitnessPlans, setLoadingFitnessPlans] = useState(false);
+  const [featuredPlans, setFeaturedPlans] = useState([]);
+  const [loadingFeaturedPlans, setLoadingFeaturedPlans] = useState(false);
+
+  useEffect(() => {
+    fetchBestSellingProducts();
+    fetchMeals();
+    fetchFitnessPlans();
+    fetchFeaturedPlans();
+  }, []);
+
+  const fetchBestSellingProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const response = await productAPI.getProducts({
+        page: 1,
+        per_page: 8
+      });
+      
+      if (response.success) {
+        setProducts(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const fetchMeals = async () => {
+    setLoadingMeals(true);
+    try {
+      const response = await mealAPI.getMeals({
+        page: 1,
+        per_page: 6
+      });
+      
+      if (response.success) {
+        // Handle nested data structure from API
+        const mealsData = response.data?.data || response.data || [];
+        setMeals(Array.isArray(mealsData) ? mealsData : []);
+      }
+    } catch (error) {
+      console.error('Error fetching meals:', error);
+    } finally {
+      setLoadingMeals(false);
+    }
+  };
+
+  const fetchFitnessPlans = async () => {
+    setLoadingFitnessPlans(true);
+    try {
+      const response = await planAPI.getPlans({
+        page: 1,
+        per_page: 5
+      });
+      
+      if (response.success) {
+        // Handle nested data structure from API
+        const plansData = response.data?.data || response.data || [];
+        setFitnessPlans(Array.isArray(plansData) ? plansData : []);
+      }
+    } catch (error) {
+      console.error('Error fetching fitness plans:', error);
+    } finally {
+      setLoadingFitnessPlans(false);
+    }
+  };
+
+  const fetchFeaturedPlans = async () => {
+    setLoadingFeaturedPlans(true);
+    try {
+      const response = await planAPI.getPlans({
+        page: 1,
+        per_page: 10 // Get more for slider
+      });
+      
+      if (response.success) {
+        // Handle nested data structure from API
+        const plansData = response.data?.data || response.data || [];
+        setFeaturedPlans(Array.isArray(plansData) ? plansData : []);
+      }
+    } catch (error) {
+      console.error('Error fetching featured plans:', error);
+    } finally {
+      setLoadingFeaturedPlans(false);
+    }
+  };
+
+  const getProductImage = (product) => {
+    // Use image_url first
+    if (product.image_url) {
+      return getFullImageUrl(product.image_url);
+    }
+    // Use gallery images - each object has image_url property
+    if (product.gallery_images && product.gallery_images.length > 0) {
+      const firstImg = product.gallery_images[0];
+      const imageUrl = typeof firstImg === 'object' ? firstImg.image_url : firstImg;
+      return getFullImageUrl(imageUrl);
+    }
+    // Fallback to default image if no images
+    return null;
+  };
+
+  const formatPrice = (price) => {
+    return `Rs.${parseFloat(price).toLocaleString()}`;
+  };
+
+  const handleProductClick = (productGuid) => {
+    navigate(`/product/${productGuid}`);
+  };
+
+  const handleMealClick = (mealGuid) => {
+    navigate(`/meal/${mealGuid}`);
+  };
+
+  const getMealImage = (meal) => {
+    // Use image_url first
+    if (meal.image_url) {
+      return getFullImageUrl(meal.image_url);
+    }
+    // Use gallery images - each object has image_url property
+    if (meal.gallery_images && meal.gallery_images.length > 0) {
+      const firstImg = meal.gallery_images[0];
+      const imageUrl = typeof firstImg === 'object' ? firstImg.image_url : firstImg;
+      return getFullImageUrl(imageUrl);
+    }
+    // Fallback to default image if no images
+    return null;
+  };
+
+  const getPlanImage = (plan) => {
+    // Use image_url first
+    if (plan.image_url) {
+      return getFullImageUrl(plan.image_url);
+    }
+    // Use gallery images - each object has image_url property
+    if (plan.gallery_images && plan.gallery_images.length > 0) {
+      const firstImg = plan.gallery_images[0];
+      const imageUrl = typeof firstImg === 'object' ? firstImg.image_url : firstImg;
+      return getFullImageUrl(imageUrl);
+    }
+    // Fallback to default image if no images
+    return null;
+  };
+
+  const handlePlanClick = (planGuid) => {
+    navigate(`/plan/${planGuid}`);
+  };
+
   return (
     <div className="landing-container">
       <div className="hero-section top-100">
@@ -163,38 +267,71 @@ const Landing = () => {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center mb-24">
             <h3 className="title-medium">Best Selling Supplements </h3>
-            <a href="#" className="view-all">
+            <a href="/products" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/products'); }}>
               View All
             </a>
           </div>
-          <div className="row">
-            {products.map((product, idx) => (
-              <div className="col-12 col-md-6 col-lg-3" key={product.id}>
-                <div className="product-card">
-                  <div className="image">
-                    <img src={product.image} alt={`Product ${product.id}`} />
-                  </div>
-                  <h3 className="name">{product.name}</h3>
-                  <div className="reviews-container">
-                    <div className="reviews">
-                      {[...Array(5)].map((_, i) => (
-                        <img src={star} alt="" key={i} />
-                      ))}
+          
+          {loadingProducts ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="loader"></div>
+              <p style={{ marginTop: '20px' }}>Loading products...</p>
+            </div>
+          ) : (
+            <div className="row">
+              {products.map((product) => (
+                <div className="col-12 col-md-6 col-lg-3" key={product.id}>
+                  <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleProductClick(product.guid)}>
+                    <div className="image">
+                      {getProductImage(product) ? (
+                        <img 
+                          src={getProductImage(product)} 
+                          alt={product.name}
+                          onError={(e) => {
+                            console.error('Image failed to load:', getProductImage(product));
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="fontSize: 60px; textAlign: center; padding: 40px 0;">📦</div>';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: '60px', textAlign: 'center', padding: '40px 0' }}>📦</div>
+                      )}
                     </div>
-                    <div className="text">({product.reviews})</div>
-                  </div>
-                  <p className="desc">{product.desc}</p>
-                  <div className="bottom">
-                    <div className="price">{product.price}</div>
-                    <button className="button">
-                      Add to Cart
-                      <img src={CartImg} alt="" />
-                    </button>
+                    <h3 className="name">{product.name}</h3>
+                    <div className="reviews-container">
+                      <div className="reviews">
+                        {[...Array(5)].map((_, i) => (
+                          <img src={star} alt="" key={i} />
+                        ))}
+                      </div>
+                      <div className="text">(250)</div>
+                    </div>
+                    <p className="desc">
+                      {product.description ? product.description.substring(0, 80) + '...' : 'Fuel your workouts and speed up recovery with high-quality supplements...'}
+                    </p>
+                    <div className="bottom">
+                      <div className="price-section">
+                        {product.discount_price && parseFloat(product.discount_price) > 0 ? (
+                          <>
+                            <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: '8px', fontSize: '14px' }}>
+                              {formatPrice(product.price)}
+                            </span>
+                            <div className="price">{formatPrice(product.discount_price)}</div>
+                          </>
+                        ) : (
+                          <div className="price">{formatPrice(product.price)}</div>
+                        )}
+                      </div>
+                      <button className="button">
+                        Add to Cart
+                        <img src={CartImg} alt="" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -203,193 +340,226 @@ const Landing = () => {
         <div className="container">
           <div className="d-flex justify-content-between align-items-center mb-24">
             <h3 className="title-medium">Fitness Programs</h3>
-            <a href="#" className="view-all">
+            <a href="/plans" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/plans'); }}>
               View All
             </a>
           </div>
-          <div className="row mb-48">
-           <div className="col-12 col-md-6">
-            <div className="large-card card-wrapper">
-              <div className="content">
-                <div className="title">
-                  Workout Plan
-                </div>
-                <div className="bottom">
-                  <div className="left">
-                    <div className="tag">One-Time Plans</div>
-                    <div className="tag">
-                      Weight loss
+          
+          {loadingFitnessPlans ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="loader"></div>
+              <p style={{ marginTop: '20px' }}>Loading plans...</p>
+            </div>
+          ) : fitnessPlans.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <h3>No plans available</h3>
+            </div>
+          ) : (
+            <div className="row mb-48">
+              {/* Large card on the left - takes full height */}
+              {fitnessPlans[0] && (
+                <div className="col-12 col-lg-6 mb-4">
+                  <div 
+                    className="large-card card-wrapper"
+                    style={{ 
+                      cursor: 'pointer',
+                      backgroundImage: getPlanImage(fitnessPlans[0]) ? `url(${getPlanImage(fitnessPlans[0])})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      minHeight: '500px'
+                    }}
+                    onClick={() => handlePlanClick(fitnessPlans[0].guid)}
+                  >
+                    <div className="content">
+                      <div className="title">{fitnessPlans[0].title}</div>
+                      <div className="bottom">
+                        <div className="left">
+                          {fitnessPlans[0].plan_type_label && (
+                            <div className="tag">{fitnessPlans[0].plan_type_label}</div>
+                          )}
+                          {fitnessPlans[0].goal_label && (
+                            <div className="tag">{fitnessPlans[0].goal_label}</div>
+                          )}
+                        </div>
+                        <button className="button" onClick={(e) => { e.stopPropagation(); }}>
+                          Add to Cart <img src={CartImg} alt="" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  <button className="button">
-                    Add to Cart <img src={CartImg} alt="" />
-                  </button>
                 </div>
-              </div>
+              )}
               
-            </div>
-           </div>
-           <div className="col-12 col-md-6">
-            <div className="row">
-              <div className="col-12 col-md-6">
-               <div className="small-card card-wrapper mb-16 one">
-                 <div className="content">
-                   <div className="title">
-                    DIET Plans
-                   </div>
-                   <div className="bottom">
-                    <div className="left">
-                      <div className="tag">
-                        One-Time Plans
-                      </div>
-                      <div className="tag"> Weight loss
-                      </div>
-                    </div>
-                    <button className="button">
-                      Add to Cart <img src={CartImg} alt="" />
-                    </button>
-                  </div>
-                 </div>
-               </div>
-              </div>
-              <div className="col-12 col-md-6">
-               <div className="small-card card-wrapper mb-16 two">
-                 <div className="content">
-                   <div className="title">
-                    Gym Membership
-                   </div>
-                   <div className="bottom">
-                    <div className="left">
-                      <div className="tag">
-                      Membership Plans
-                      </div>
-                      <div className="tag"> Weight loss
+              {/* 4 small cards on the right - 2x2 grid */}
+              <div className="col-12 col-lg-6">
+                <div className="row">
+                  {fitnessPlans.slice(1, 5).map((plan) => (
+                    <div className="col-6 mb-4" key={plan.id}>
+                      <div 
+                        className="small-card card-wrapper"
+                        style={{ 
+                          cursor: 'pointer',
+                          backgroundImage: getPlanImage(plan) ? `url(${getPlanImage(plan)})` : 'none',
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          minHeight: '240px'
+                        }}
+                        onClick={() => handlePlanClick(plan.guid)}
+                      >
+                        <div className="content">
+                          <div className="title">{plan.title}</div>
+                          <div className="bottom">
+                            <div className="left">
+                              {plan.plan_type_label && (
+                                <div className="tag">{plan.plan_type_label}</div>
+                              )}
+                            </div>
+                            <button className="button" onClick={(e) => { e.stopPropagation(); }}>
+                              Add to Cart <img src={CartImg} alt="" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <button className="button">
-                      Add to Cart <img src={CartImg} alt="" />
-                    </button>
-                  </div>
-                 </div>
-               </div>
-              </div>
-              <div className="col-12 col-md-6">
-               <div className="small-card card-wrapper three">
-                 <div className="content">
-                   <div className="title">
-                   Fitness Plan (Trainer)
-                   </div>
-                   <div className="bottom">
-                    <div className="left">
-                      <div className="tag">
-                      Membership Plans
-                      </div>
-                      <div className="tag"> Weight loss
-                      </div>
-                    </div>
-                    <button className="button">
-                      Add to Cart <img src={CartImg} alt="" />
-                    </button>
-                  </div>
-                 </div>
-               </div>
-              </div>
-               <div className="col-12 col-md-6">
-               <div className="small-card card-wrapper four">
-                 <div className="content">
-                   <div className="title">
-                  Ultimate Fitness Plan
-                   </div>
-                   <div className="bottom">
-                    <div className="left">
-                      <div className="tag">
-                      Membership Plans
-                      </div>
-                      <div className="tag"> Weight loss
-                      </div>
-                    </div>
-                    <button className="button">
-                      Add to Cart <img src={CartImg} alt="" />
-                    </button>
-                  </div>
-                 </div>
-               </div>
+                  ))}
+                </div>
               </div>
             </div>
-           </div>
-          </div>
+          )}
           <div className="d-flex justify-content-between align-items-center mb-24">
             <h3 className="title-medium">Meals</h3>
-            <a href="#" className="view-all">
+            <a href="/meals" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/meals'); }}>
               View All
             </a>
           </div>
-          <div className="row">
-            {meals.map((meal, idx) => (
-              <div className="col-12 col-md-6 col-lg-4" key={idx}>
-                <div className="product-card">
-                  <div className="image lg">
-                    <img src={meal.image} alt={`Meal ${idx + 1}`} />
-                  </div>
-                  <h3 className="name">{meal.name}</h3>
-                  <p className="desc">{meal.desc}</p>
-                  <div className="bottom">
-                    <div className="price">{meal.price}</div>
-                    <button className="button">Add to Cart
-                      <img src={CartImg} alt="" />
-                    </button>
+          
+          {loadingMeals ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="loader"></div>
+              <p style={{ marginTop: '20px' }}>Loading meals...</p>
+            </div>
+          ) : (
+            <div className="row">
+              {meals.map((meal) => (
+                <div className="col-12 col-md-6 col-lg-4" key={meal.id}>
+                  <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleMealClick(meal.guid)}>
+                    <div className="image lg">
+                      {getMealImage(meal) ? (
+                        <img 
+                          src={getMealImage(meal)} 
+                          alt={meal.name}
+                          onError={(e) => {
+                            console.error('Image failed to load:', getMealImage(meal));
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="fontSize: 60px; textAlign: center; padding: 40px 0;">🍽️</div>';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: '60px', textAlign: 'center', padding: '40px 0' }}>🍽️</div>
+                      )}
+                    </div>
+                    <h3 className="name">{meal.name}</h3>
+                    <p className="desc">
+                      {meal.description ? meal.description.substring(0, 80) + '...' : 'Delicious and healthy meal option'}
+                    </p>
+                    <div className="bottom">
+                      <div className="price-section">
+                        {meal.has_discount && meal.sale_price ? (
+                          <>
+                            <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: '8px', fontSize: '14px' }}>
+                              {formatPrice(meal.price)}
+                            </span>
+                            <div className="price">{formatPrice(meal.sale_price)}</div>
+                          </>
+                        ) : (
+                          <div className="price">{formatPrice(meal.current_price || meal.price)}</div>
+                        )}
+                      </div>
+                      <button className="button">
+                        Add to Cart
+                        <img src={CartImg} alt="" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
-      {/* Featured Progreams */}
+      {/* Featured Programs */}
       <div className="bg-gray padding-40">
         <div className="container">
-        <h3 className="title-medium mb-24">Featured Programs</h3>
-        <Slider
-          dots={false}
-          infinite={true}
-          speed={500}
-          slidesToShow={4}
-          slidesToScroll={1}
-          arrows={true}
-          cssEase="ease"
-          responsive={[
-            {
-              breakpoint: 1200,
-              settings: { slidesToShow: 3, arrows: true },
-            },
-            {
-              breakpoint: 992,
-              settings: { slidesToShow: 2, arrows: true },
-            },
-            {
-              breakpoint: 576,
-              settings: { slidesToShow: 1, arrows: true },
-            },
-          ]}
-          className="featured-slider"
-        >
-          {featuredPrograms.map((program, idx) => (
-            <div key={idx}>
-              <div className="featured-card">
-                <div className="image">
-                  <img src={program.image} alt={program.title} />
-                </div>
-              <div className="data">
-                  <h3 className="title">{program.title}</h3>
-                <p className="desc">{program.desc}</p>
-              </div>
-                
-              </div>
+          <h3 className="title-medium mb-24">Featured Programs</h3>
+          {loadingFeaturedPlans ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div className="loader"></div>
+              <p style={{ marginTop: '20px' }}>Loading featured programs...</p>
             </div>
-          ))}
-        </Slider>
-      </div>
+          ) : featuredPlans.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <h3>No featured programs available</h3>
+            </div>
+          ) : (
+            <Slider
+              dots={false}
+              infinite={featuredPlans.length > 4}
+              speed={500}
+              slidesToShow={Math.min(4, featuredPlans.length)}
+              slidesToScroll={1}
+              arrows={true}
+              cssEase="ease"
+              responsive={[
+                {
+                  breakpoint: 1200,
+                  settings: { slidesToShow: Math.min(3, featuredPlans.length), arrows: true },
+                },
+                {
+                  breakpoint: 992,
+                  settings: { slidesToShow: Math.min(2, featuredPlans.length), arrows: true },
+                },
+                {
+                  breakpoint: 576,
+                  settings: { slidesToShow: 1, arrows: true },
+                },
+              ]}
+              className="featured-slider"
+            >
+              {featuredPlans.map((plan) => (
+                <div key={plan.id}>
+                  <div 
+                    className="featured-card" 
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => handlePlanClick(plan.guid)}
+                  >
+                    <div className="image">
+                      {getPlanImage(plan) ? (
+                        <img 
+                          src={getPlanImage(plan)} 
+                          alt={plan.title}
+                          onError={(e) => {
+                            console.error('Image failed to load:', getPlanImage(plan));
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = '<div style="fontSize: 60px; textAlign: center; padding: 40px 0;">🏋️</div>';
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontSize: '60px', textAlign: 'center', padding: '40px 0' }}>🏋️</div>
+                      )}
+                    </div>
+                    <div className="data">
+                      <h3 className="title">{plan.title}</h3>
+                      <p className="desc">
+                        {plan.short_description ? plan.short_description.substring(0, 80) + '...' : 'Transform your fitness journey with this program'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </Slider>
+          )}
+        </div>
       </div>
       {/* Trusted by 1000+ Customers WorldWide */}
       <div className="padding-40 dark-bg">

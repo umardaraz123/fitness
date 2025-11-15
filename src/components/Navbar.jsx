@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 // import { Search, ShoppingCart, User } from 'lucide-react';
 import Logo from '../assets/images/logo.svg';
 import User from '../assets/images/user.svg';
@@ -9,17 +10,21 @@ import Cart from '../assets/images/cart.svg';
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const dropdownRef = useRef(null);
   
   // Check if user is on dashboard pages
   const isDashboard = location.pathname.startsWith('/dashboard');
   
-  // Mock user data - in real app this would come from auth context
-  const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: '/src/assets/images/user1.jpg' // Using one of the available user images
+  // Get initials from name
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const names = name.trim().split(' ');
+    if (names.length >= 2) {
+      return (names[0][0] + names[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
   // Close dropdown when clicking outside
@@ -64,8 +69,8 @@ const Navbar = () => {
         </Link>
         <div className="navbar-nav mx-auto">
           <Link className="nav-link" to="/">Home</Link>
-          <Link className="nav-link" to="/shop">Shop</Link>
-          <Link className="nav-link" to="/fitness-programs">Fitness Programs</Link>
+          <Link className="nav-link" to="/products">Shop</Link>
+          <Link className="nav-link" to="/plans">Fitness Programs</Link>
           <Link className="nav-link" to="/meals">Meals</Link>
           <Link className="nav-link" to="/membership">Membership</Link>
         </div>
@@ -84,13 +89,19 @@ const Navbar = () => {
                 className={`avatar-button ${showUserDropdown ? 'active' : ''}`}
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
               >
-                <img 
-                  src={userData.avatar} 
-                  alt={userData.name}
-                  className="avatar-image"
-                />
+                {user?.profile_image ? (
+                  <img 
+                    src={user.profile_image} 
+                    alt={user?.name || 'User'}
+                    className="avatar-image"
+                  />
+                ) : (
+                  <div className="avatar-initials">
+                    {getInitials(user?.name || 'User')}
+                  </div>
+                )}
                 <span className="avatar-name">
-                  {userData.name}
+                  {user?.name || 'User'}
                 </span>
                 <svg 
                   width="16" 
@@ -108,8 +119,8 @@ const Navbar = () => {
               {showUserDropdown && (
                 <div className="dropdown-menu">
                   <div className="user-info">
-                    <div className="user-name">{userData.name}</div>
-                    <div className="user-email">{userData.email}</div>
+                    <div className="user-name">{user?.name || 'User'}</div>
+                    <div className="user-email">{user?.email || ''}</div>
                   </div>
                   
                   <button onClick={handleDashboardClick} className="dropdown-item">

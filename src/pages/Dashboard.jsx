@@ -1,17 +1,23 @@
 import React, { useState } from 'react';
 import { useLocation, Link, Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 const Dashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { showSuccess } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
   
-  // Mock user data
+  // Get user data from context (already stored in localStorage via AuthContext)
   const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
+    name: user?.name || 'User',
+    email: user?.email || '',
     avatar: '/src/assets/images/user1.jpg',
-    joinDate: 'Member since Jan 2024'
+    joinDate: user?.created_at 
+      ? `Member since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` 
+      : 'Member since 2024'
   };
 
   const notifications = [
@@ -47,9 +53,16 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userData');
+    // Use logout from AuthContext which clears localStorage and state
+    logout();
+    showSuccess('Logged out successfully!');
     navigate('/');
+  };
+
+  const handleTabClick = (tab) => {
+    if (tab.id === 'logout') {
+      handleLogout();
+    }
   };
 
   return (
@@ -127,13 +140,24 @@ const Dashboard = () => {
       {/* Dashboard Tabs */}
       <div className="dashboard-tabs">
         {tabs.map((tab) => (
-          <Link
-            key={tab.id}
-            to={tab.path}
-            className={`dashboard-tab ${getActiveTab() === tab.id ? 'active' : ''}`}
-          >
-            {tab.label}
-          </Link>
+          tab.id === 'logout' ? (
+            <button
+              key={tab.id}
+              onClick={handleLogout}
+              className={`dashboard-tab ${getActiveTab() === tab.id ? 'active' : ''}`}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+            >
+              {tab.label}
+            </button>
+          ) : (
+            <Link
+              key={tab.id}
+              to={tab.path}
+              className={`dashboard-tab ${getActiveTab() === tab.id ? 'active' : ''}`}
+            >
+              {tab.label}
+            </Link>
+          )
         ))}
       </div>
 

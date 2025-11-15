@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { productAPI } from "../services/api.service";
+import { useToast } from "../context/ToastContext";
 import Prod1 from "../assets/images/p1.png";
 import Prod2 from "../assets/images/p2.png";
 import Prod3 from "../assets/images/p3.png";
@@ -9,23 +12,101 @@ import CartImg from "../assets/images/cart1.svg";
 import User1 from "../assets/images/user1.jpg";
 import User2 from "../assets/images/user2.jpg";
 
+// Helper function to get full image URL
+const getFullImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  // Check if imagePath is a string
+  if (typeof imagePath !== 'string') return null;
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  // Handle file system paths
+  if (imagePath.includes('/storage/uploads/')) {
+    const baseUrl = 'https://startuppakistan.himalayatool.com';
+    const storagePath = imagePath.substring(imagePath.indexOf('/storage/uploads/'));
+    return `${baseUrl}${storagePath}`;
+  }
+  const baseUrl = 'https://startuppakistan.himalayatool.com';
+  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
 const productImages = [Prod1, Prod2, Prod3, Prod4];
-const relatedProducts = Array.from({ length: 4 }, (_, i) => ({
-  id: i + 1,
-  name: "Protein Jar Premium",
-  price: "Rs.3000",
-  desc: "High-quality protein supplement for muscle building and recovery. Perfect for post-workout nutrition.",
-  reviews: 150 + i * 10,
-  image: productImages[i % 4],
-}));
 
 const ProductDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { showError } = useToast();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [relatedProducts, setRelatedProducts] = useState([]);
   const [activeTab, setActiveTab] = useState('description');
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [closed, setClosed] = useState(false);
-  const [selectedFlavor, setSelectedFlavor] = useState('Glacial Grape');
+  const [selectedFlavor, setSelectedFlavor] = useState('');
   const [activeReviewFilter, setActiveReviewFilter] = useState('All Reviews');
+
+  useEffect(() => {
+    if (id) {
+      fetchProductDetails();
+      fetchRelatedProducts();
+    }
+  }, [id]);
+
+  const fetchRelatedProducts = async () => {
+    try {
+      const response = await productAPI.getProducts({ page: 1, per_page: 4 });
+      if (response.success) {
+        setRelatedProducts((response.data || []).filter(p => p.guid !== id));
+      }
+    } catch (error) {
+      console.error('Error fetching related products:', error);
+    }
+  };
+
+  const fetchProductDetails = async () => {
+    setLoading(true);
+    try {
+      const response = await productAPI.getProductById(id);
+      if (response.success) {
+        setProduct(response.data);
+        if (response.data.flavor) {
+          setSelectedFlavor(response.data.flavor);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching product:', error);
+      showError('Failed to load product details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const productImages = [];
+  if (product) {
+    // Add main image first if available
+    if (product.image_url) {
+      productImages.push(getFullImageUrl(product.image_url));
+    }
+    // Add gallery images - each object has image_url property
+    if (product.gallery_images && product.gallery_images.length > 0) {
+      product.gallery_images.forEach(img => {
+        // Handle both object with image_url and direct string
+        const imgUrl = typeof img === 'object' ? img.image_url : img;
+        if (imgUrl) {
+          productImages.push(getFullImageUrl(imgUrl));
+        }
+      });
+    }
+  }
+
+  // Use placeholder images if no product images
+  const displayImages = productImages.length > 0 ? productImages : [Prod1, Prod2, Prod3, Prod4];
+
+  const formatPrice = (price) => {
+    return `Rs.${parseFloat(price).toLocaleString()}`;
+  };
 
   const flavors = ['Glacial Grape', 'Blue Raspberry'];
   const reviewFilters = ['All Reviews', 'With Photo & Video', 'With Description'];
@@ -35,8 +116,32 @@ const ProductDetail = () => {
     { id: 'benefits', label: 'Benefits' },
     { id: 'suggested', label: 'Suggested Use' },
     { id: 'nutrition', label: 'Nutritional Information' },
-     { id: 'reviews', label: 'Reviews' },
+    { id: 'reviews', label: 'Reviews' },
   ];
+
+  if (loading) {
+    return (
+      <div className="product-detail-page top-100 dark-bg" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="loader"></div>
+          <p style={{ marginTop: '20px' }}>Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="product-detail-page top-100 dark-bg" style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2>Product not found</h2>
+          <button className="button" onClick={() => navigate('/products')} style={{ marginTop: '20px' }}>
+            Browse Products
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="product-detail-page top-100">
@@ -60,13 +165,13 @@ const ProductDetail = () => {
             {/* Left - Thumbnail Images */}
             <div className="col-12 col-md-2">
               <div className="thumbnail-gallery">
-                {productImages.map((img, idx) => (
-                  <div 
-                    key={idx} 
+                {displayImages.map((img, idx) => (
+                  <div
+                    key={idx}
                     className={`thumbnail ${selectedImage === idx ? 'active' : ''}`}
                     onClick={() => setSelectedImage(idx)}
                   >
-                    <img src={img} alt={`Product ${idx + 1}`} />
+                    <img src={img} alt={`${product.name} ${idx + 1}`} />
                   </div>
                 ))}
               </div>
@@ -75,7 +180,7 @@ const ProductDetail = () => {
             {/* Center - Main Image */}
             <div className="col-12 col-md-5">
               <div className="main-image">
-                <img src={productImages[selectedImage]} alt="Clear Whey Protein Powder" />
+                <img src={displayImages[selectedImage]} alt={product.name} />
               </div>
             </div>
 
@@ -91,29 +196,29 @@ const ProductDetail = () => {
                   <span className="text">35,000+ 5 stars for Factor on Trustpilot</span>
                 </div>
 
-                <h1 className="product-title mb-16">Clear Whey Protein Powder</h1>
-                
+                <h1 className="product-title mb-16">{product.name}</h1>
 
                 <div className="price-section mb-16">
-                     <span className="original-price">Rs.2500</span>
-                  <span className="current-price">Rs.2000</span>
-                 
+                  {product.discount_price && parseFloat(product.discount_price) > 0 ? (
+                    <>
+                      <span className="original-price">{formatPrice(product.price)}</span>
+                      <span className="current-price">{formatPrice(product.discount_price)}</span>
+                    </>
+                  ) : (
+                    <span className="current-price">{formatPrice(product.price)}</span>
+                  )}
                 </div>
 
-                <div className="flavor-section mb-24">
-                  <h4 className="mb-16 title-small">Flavor</h4>
-                  <div className="flavor-options">
-                    {flavors.map((flavor) => (
-                      <button 
-                        key={flavor}
-                        className={`flavor-btn ${selectedFlavor === flavor ? 'active' : ''}`}
-                        onClick={() => setSelectedFlavor(flavor)}
-                      >
-                        {flavor}
+                {product.flavor && (
+                  <div className="flavor-section mb-24">
+                    <h4 className="mb-16 title-small">Flavor</h4>
+                    <div className="flavor-options">
+                      <button className="flavor-btn active">
+                        {product.flavor}
                       </button>
-                    ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="quantity-section mb-24">
                   <h4 className="mb-16 title-small">Quantity</h4>
@@ -171,51 +276,29 @@ const ProductDetail = () => {
               <div className="description-content">
                 <h3 className="mb-24">Product Description</h3>
                 <p className="mb-16">
-                  Clear whey protein isolate is a ground-based protein supplement with excellent 
-                  amino acid composition. Its typical amino acid composition contains all essential amino acids, including high levels 
-                  of branched-chain amino acids (BCAAs) such as leucine, isoleucine, and valine.
+                  {product.description || 'No description available for this product.'}
                 </p>
-                <p className="mb-16">
-                  Clear whey isolate typically contains a higher protein content compared to 
-                  regular whey concentrate. The protein powder typically contains 90-95% protein by weight with 
-                  minimal carbohydrates and fats, making it an ideal choice for those looking to build lean muscle.
-                </p>
-                <h4 className="mb-16">Suitable For:</h4>
-                <ul className="feature-list">
-                  <li>Athletes and fitness enthusiasts</li>
-                  <li>Anyone looking to increase protein intake</li>
-                  <li>Post-workout recovery</li>
-                  <li>Weight management support</li>
-                </ul>
-                <h4 className="mb-16">Key Features:</h4>
-                <ul className="feature-list">
-                  <li>100% whey protein isolate</li>
-                  <li>24g protein per serving</li>
-                  <li>Fast absorption</li>
-                  <li>Great taste and mixability</li>
-                  <li>Third-party tested for purity</li>
-                </ul>
               </div>
             )}
             
-            {activeTab === 'suggested' && (
-              <div className="suggested-content">
-                <h3 className="mb-24">Suggested Use</h3>
-                <p>Suggested use content will be displayed here...</p>
+            {activeTab === 'benefits' && (
+              <div className="benefits-content">
+                <h3 className="mb-24">Benefits</h3>
+                <div dangerouslySetInnerHTML={{ __html: product.benefits || '<p>No benefits information available.</p>' }} />
               </div>
             )}
 
-            {activeTab === 'benefits' && (
-              <div className="ingredients-content">
-                <h3 className="mb-24">Ingredients</h3>
-                <p>Ingredients list will be displayed here...</p>
+            {activeTab === 'suggested' && (
+              <div className="suggested-content">
+                <h3 className="mb-24">Suggested Use</h3>
+                <div dangerouslySetInnerHTML={{ __html: product.suggested_use || '<p>No suggested use information available.</p>' }} />
               </div>
             )}
             
             {activeTab === 'nutrition' && (
               <div className="nutrition-content">
-                <h3 className="mb-24">Nutrition Facts</h3>
-                <p>Nutrition information will be displayed here...</p>
+                <h3 className="mb-24">Nutritional Information</h3>
+                <div dangerouslySetInnerHTML={{ __html: product.nutritional_information || '<p>No nutritional information available.</p>' }} />
               </div>
             )}
               {activeTab === 'reviews' && (
@@ -407,39 +490,61 @@ const ProductDetail = () => {
       </div>
 
       {/* Related Products Section */}
-      <div className="related-products-section padding-40 dark-bg">
-        <div className="container">
-       <div class="d-flex justify-content-between align-items-center mb-24"><h3 class="title-medium">You may also like </h3><a href="#" class="view-all">View All</a></div>
-          <div className="row">
-            {relatedProducts.map((product, idx) => (
-              <div className="col-12 col-md-6 col-lg-3" key={product.id}>
-                <div className="product-card">
-                  <div className="image">
-                    <img src={product.image} alt={`Product ${product.id}`} />
-                  </div>
-                  <h3 className="name">{product.name}</h3>
-                  <div className="reviews-container">
-                    <div className="reviews">
-                      {[...Array(5)].map((_, i) => (
-                        <img src={star} alt="" key={i} />
-                      ))}
+      {relatedProducts.length > 0 && (
+        <div className="related-products-section padding-40 dark-bg">
+          <div className="container">
+            <div className="d-flex justify-content-between align-items-center mb-24">
+              <h3 className="title-medium">You may also like</h3>
+              <a href="/products" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/products'); }}>
+                View All
+              </a>
+            </div>
+            <div className="row">
+              {relatedProducts.slice(0, 4).map((relatedProduct) => {
+                const prodImage = relatedProduct.image_url 
+                  ? getFullImageUrl(relatedProduct.image_url)
+                  : (relatedProduct.gallery_images && relatedProduct.gallery_images.length > 0
+                    ? getFullImageUrl(typeof relatedProduct.gallery_images[0] === 'object' ? relatedProduct.gallery_images[0].image_url : relatedProduct.gallery_images[0])
+                    : null);
+                
+                return (
+                  <div className="col-12 col-md-6 col-lg-3" key={relatedProduct.id}>
+                    <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/product/${relatedProduct.guid}`)}>
+                      <div className="image">
+                        {prodImage ? (
+                          <img 
+                            src={prodImage} 
+                            alt={relatedProduct.name}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.parentElement.innerHTML = '<div style="fontSize: 48px; textAlign: center; padding: 30px 0;">📦</div>';
+                            }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: '48px', textAlign: 'center', padding: '30px 0' }}>
+                            📦
+                          </div>
+                        )}
+                      </div>
+                      <h3 className="name">{relatedProduct.name}</h3>
+                      <p className="desc">
+                        {relatedProduct.description ? relatedProduct.description.substring(0, 60) + '...' : 'Quality fitness product'}
+                      </p>
+                      <div className="bottom">
+                        <div className="price">{formatPrice(relatedProduct.discount_price && parseFloat(relatedProduct.discount_price) > 0 ? relatedProduct.discount_price : relatedProduct.price)}</div>
+                        <button className="button" onClick={(e) => { e.stopPropagation(); navigate(`/product/${relatedProduct.guid}`); }}>
+                          View Details
+                          <img src={CartImg} alt="" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="text">({product.reviews})</div>
                   </div>
-                  <p className="desc">{product.desc}</p>
-                  <div className="bottom">
-                    <div className="price">{product.price}</div>
-                    <button className="button">
-                      Add to Cart
-                      <img src={CartImg} alt="" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
