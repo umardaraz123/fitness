@@ -60,7 +60,6 @@ function AppContent() {
         <Route path="/" element={<Landing />} />
         <Route path="/fitness-programs" element={<FitnessPrograms />} />
         <Route path="/meals" element={<Meals />} />
-        <Route path="/meals/category/:categoryName" element={<Meals />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/products" element={<Products />} />
         <Route path="/membership" element={<Membership />} />

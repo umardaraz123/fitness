@@ -12,6 +12,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
   
   // Check if user is on dashboard pages
@@ -67,14 +68,31 @@ const Navbar = () => {
         <Link className="navbar-brand" to="/">
           <img src={Logo} alt="Logo"  />
         </Link>
-        <div className="navbar-nav mx-auto">
-          <Link className="nav-link" to="/">Home</Link>
-          <Link className="nav-link" to="/products">Shop</Link>
-          <Link className="nav-link" to="/plans">Fitness Programs</Link>
-          <Link className="nav-link" to="/meals">Meals</Link>
-          <Link className="nav-link" to="/membership">Membership</Link>
+        
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="navbar-toggler" 
+          type="button"
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            padding: '8px',
+            cursor: 'pointer',
+            display: 'none'
+          }}
+        >
+          <span style={{ fontSize: '24px', color: '#fff' }}>☰</span>
+        </button>
+
+        <div className={`navbar-nav mx-auto ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+          <Link className="nav-link" to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+          <Link className="nav-link" to="/products" onClick={() => setIsMobileMenuOpen(false)}>Shop</Link>
+          <Link className="nav-link" to="/plans" onClick={() => setIsMobileMenuOpen(false)}>Fitness Programs</Link>
+          <Link className="nav-link" to="/meals" onClick={() => setIsMobileMenuOpen(false)}>Meals</Link>
+          <Link className="nav-link" to="/membership" onClick={() => setIsMobileMenuOpen(false)}>Membership</Link>
         </div>
-        <div className="d-flex align-items-center">
+        <div className="d-flex align-items-center navbar-actions">
           <button className="btn btn-link text-dark me-3" style={{ border: 'none', background: 'transparent' }}>
             <img src={Search} alt="Search" />
           </button>

@@ -27,9 +27,8 @@ const getFullImageUrl = (imagePath) => {
 
 const Meals = () => {
   const navigate = useNavigate();
-  const { categoryName } = useParams();
   const { showError } = useToast();
-  const [activeTab, setActiveTab] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,7 +37,7 @@ const Meals = () => {
 
   useEffect(() => {
     fetchMeals();
-  }, [currentPage, categoryName]);
+  }, [currentPage, selectedType]);
 
   const fetchMeals = async () => {
     setLoading(true);
@@ -48,9 +47,9 @@ const Meals = () => {
         per_page: perPage
       };
       
-      // Add category filter if present in URL
-      if (categoryName) {
-        params.category = categoryName;
+      // Add type filter if selected
+      if (selectedType && selectedType !== 'all') {
+        params.type = selectedType;
       }
       
       const response = await mealAPI.getMeals(params);
@@ -65,6 +64,11 @@ const Meals = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTypeChange = (e) => {
+    setSelectedType(e.target.value);
+    setCurrentPage(1);
   };
 
   const handleMealClick = (mealGuid) => {
@@ -111,47 +115,36 @@ const Meals = () => {
       </div>
       <div className="dark-bg padding-60">
         <div className="container">
-          <h3 className="title-medium mb-32">Categories</h3>
-          <div className="custom-tabs mb-40">
-            <div
-              className={`tab${!categoryName ? ' active' : ''}`}
-              onClick={() => navigate('/meals')}
-              style={{ cursor: 'pointer' }}
-            >
-              All Meals
-            </div>
-            <div
-              className={`tab${categoryName === 'keto' ? ' active' : ''}`}
-              onClick={() => navigate('/meals/category/keto')}
-              style={{ cursor: 'pointer' }}
-            >
-              Keto Diet Membership
-            </div>
-            <div
-              className={`tab${categoryName === 'fat-loss' ? ' active' : ''}`}
-              onClick={() => navigate('/meals/category/fat-loss')}
-              style={{ cursor: 'pointer' }}
-            >
-              Fat Loss Diet Membership
-            </div>
-            <div
-              className={`tab${categoryName === 'muscle-gain' ? ' active' : ''}`}
-              onClick={() => navigate('/meals/category/muscle-gain')}
-              style={{ cursor: 'pointer' }}
-            >
-              Muscle Gain Diet Membership
-            </div>
-            <div
-              className={`tab${categoryName === 'student' ? ' active' : ''}`}
-              onClick={() => navigate('/meals/category/student')}
-              style={{ cursor: 'pointer' }}
-            >
-              Student Diet Membership
+          <div className="d-flex justify-content-between align-items-center mb-32">
+            <h3 className="title-medium">Filter by Type</h3>
+            <div className="filters" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <label style={{ marginRight: '8px', fontSize: '14px' }}>Meal Type:</label>
+              <select 
+                value={selectedType}
+                onChange={handleTypeChange}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: '#2c2c2c',
+                  color: '#fff',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  minWidth: '180px'
+                }}
+              >
+                <option value="all">All Meals</option>
+                <option value="VEG">Vegetarian</option>
+                <option value="NON_VEG">Non-Vegetarian</option>
+                <option value="VEGAN">Vegan</option>
+              </select>
             </div>
           </div>
        
           <h2 className="mb-32">
-            {categoryName ? `${categoryName} Meals` : 'Healthy Meals'} ({meals.length} meals)
+            {selectedType !== 'all' 
+              ? `${selectedType === 'VEG' ? 'Vegetarian' : selectedType === 'NON_VEG' ? 'Non-Vegetarian' : 'Vegan'} Meals` 
+              : 'All Meals'} ({meals.length} meals)
           </h2>
           
           {loading ? (
