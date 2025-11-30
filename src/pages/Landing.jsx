@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { productAPI, mealAPI, planAPI } from "../services/api.service";
+import { useProducts, useMeals, usePlans } from "../hooks/reduxHooks";
 import ShopIcon from "../assets/images/shop.svg";
 
 // Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
+  const baseUrl = import.meta.env.VITE_APP_BASE_URL;
+
   if (!imagePath) return null;
   // Check if imagePath is a string
   if (typeof imagePath !== 'string') return null;
@@ -14,15 +16,14 @@ const getFullImageUrl = (imagePath) => {
   }
   // Handle file system paths (e.g., /home/himaqjjt/startuppakistan.himalayatool.com/storage/uploads/...)
   if (imagePath.includes('/storage/uploads/')) {
-    const baseUrl = 'https://startuppakistan.himalayatool.com';
     const storagePath = imagePath.substring(imagePath.indexOf('/storage/uploads/'));
     return `${baseUrl}${storagePath}`;
   }
   // Construct full URL from base domain for relative paths
-  const baseUrl = 'https://startuppakistan.himalayatool.com';
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
   return `${baseUrl}${cleanPath}`;
 };
+
 import Cat1 from "../assets/images/cat1.png";
 import Cat2 from "../assets/images/cat2.png";
 import Cat3 from "../assets/images/cat3.png";
@@ -59,12 +60,29 @@ import "slick-carousel/slick/slick-theme.css";
 
 const Landing = () => {
   const navigate = useNavigate();
-  const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
-  const [meals, setMeals] = useState([]);
-  const [loadingMeals, setLoadingMeals] = useState(false);
-  const [fitnessPlans, setFitnessPlans] = useState([]);
-  const [loadingFitnessPlans, setLoadingFitnessPlans] = useState(false);
+  
+  // Redux hooks
+  const { 
+    products, 
+    isLoading: loadingProducts, 
+    getProducts,
+    clearError: clearProductsError 
+  } = useProducts();
+  
+  const { 
+    meals, 
+    isLoading: loadingMeals, 
+    getMeals,
+    clearError: clearMealsError 
+  } = useMeals();
+  
+  const { 
+    plans: fitnessPlans, 
+    isLoading: loadingFitnessPlans, 
+    getPlans,
+    clearError: clearPlansError 
+  } = usePlans();
+
   const [featuredPlans, setFeaturedPlans] = useState([]);
   const [loadingFeaturedPlans, setLoadingFeaturedPlans] = useState(false);
 
@@ -73,77 +91,58 @@ const Landing = () => {
     fetchMeals();
     fetchFitnessPlans();
     fetchFeaturedPlans();
+
+    // Clear errors on component unmount
+    return () => {
+      clearProductsError();
+      clearMealsError();
+      clearPlansError();
+    };
   }, []);
 
   const fetchBestSellingProducts = async () => {
-    setLoadingProducts(true);
     try {
-      const response = await productAPI.getProducts({
+      await getProducts({
         page: 1,
         per_page: 8
       });
-      
-      if (response.success) {
-        setProducts(response.data || []);
-      }
     } catch (error) {
       console.error('Error fetching products:', error);
-    } finally {
-      setLoadingProducts(false);
     }
   };
 
   const fetchMeals = async () => {
-    setLoadingMeals(true);
     try {
-      const response = await mealAPI.getMeals({
+      await getMeals({
         page: 1,
         per_page: 6
       });
-      
-      if (response.success) {
-        // Handle nested data structure from API
-        const mealsData = response.data?.data || response.data || [];
-        setMeals(Array.isArray(mealsData) ? mealsData : []);
-      }
     } catch (error) {
       console.error('Error fetching meals:', error);
-    } finally {
-      setLoadingMeals(false);
     }
   };
 
   const fetchFitnessPlans = async () => {
-    setLoadingFitnessPlans(true);
     try {
-      const response = await planAPI.getPlans({
+      await getPlans({
         page: 1,
         per_page: 5
       });
-      
-      if (response.success) {
-        // Handle nested data structure from API
-        const plansData = response.data?.data || response.data || [];
-        setFitnessPlans(Array.isArray(plansData) ? plansData : []);
-      }
     } catch (error) {
       console.error('Error fetching fitness plans:', error);
-    } finally {
-      setLoadingFitnessPlans(false);
     }
   };
 
   const fetchFeaturedPlans = async () => {
     setLoadingFeaturedPlans(true);
     try {
-      const response = await planAPI.getPlans({
+      const response = await getPlans({
         page: 1,
-        per_page: 10 // Get more for slider
+        per_page: 10
       });
       
-      if (response.success) {
-        // Handle nested data structure from API
-        const plansData = response.data?.data || response.data || [];
+      if (response.payload?.data?.data || response.payload?.data) {
+        const plansData = response.payload.data.data || response.payload.data || [];
         setFeaturedPlans(Array.isArray(plansData) ? plansData : []);
       }
     } catch (error) {
@@ -214,6 +213,11 @@ const Landing = () => {
     navigate(`/plan/${planGuid}`);
   };
 
+  // Extract actual data from Redux state
+  const productsData = products?.data?.data || products?.data || products || [];
+  const mealsData = meals?.data?.data || meals?.data || meals || [];
+  const fitnessPlansData = fitnessPlans?.data?.data || fitnessPlans?.data || fitnessPlans || [];
+
   return (
     <div className="landing-container">
       <div className="hero-section top-100">
@@ -262,6 +266,7 @@ const Landing = () => {
           </div>
         </div>
       </div>
+      
       {/* All Products  */}
       <div className="products-wrapper bg-gray">
         <div className="container">
@@ -279,7 +284,7 @@ const Landing = () => {
             </div>
           ) : (
             <div className="row">
-              {products.map((product) => (
+              {Array.isArray(productsData) && productsData.map((product) => (
                 <div className="col-12 col-md-6 col-lg-3" key={product.id}>
                   <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleProductClick(product.guid)}>
                     <div className="image">
@@ -350,35 +355,35 @@ const Landing = () => {
               <div className="loader"></div>
               <p style={{ marginTop: '20px' }}>Loading plans...</p>
             </div>
-          ) : fitnessPlans.length === 0 ? (
+          ) : fitnessPlansData.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <h3>No plans available</h3>
             </div>
           ) : (
             <div className="row mb-48">
               {/* Large card on the left - takes full height */}
-              {fitnessPlans[0] && (
+              {fitnessPlansData[0] && (
                 <div className="col-12 col-lg-6 mb-4">
                   <div 
                     className="large-card card-wrapper"
                     style={{ 
                       cursor: 'pointer',
-                      backgroundImage: getPlanImage(fitnessPlans[0]) ? `url(${getPlanImage(fitnessPlans[0])})` : 'none',
+                      backgroundImage: getPlanImage(fitnessPlansData[0]) ? `url(${getPlanImage(fitnessPlansData[0])})` : 'none',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       minHeight: '500px'
                     }}
-                    onClick={() => handlePlanClick(fitnessPlans[0].guid)}
+                    onClick={() => handlePlanClick(fitnessPlansData[0].guid)}
                   >
                     <div className="content">
-                      <div className="title">{fitnessPlans[0].title}</div>
+                      <div className="title">{fitnessPlansData[0].title}</div>
                       <div className="bottom">
                         <div className="left">
-                          {fitnessPlans[0].plan_type_label && (
-                            <div className="tag">{fitnessPlans[0].plan_type_label}</div>
+                          {fitnessPlansData[0].plan_type_label && (
+                            <div className="tag">{fitnessPlansData[0].plan_type_label}</div>
                           )}
-                          {fitnessPlans[0].goal_label && (
-                            <div className="tag">{fitnessPlans[0].goal_label}</div>
+                          {fitnessPlansData[0].goal_label && (
+                            <div className="tag">{fitnessPlansData[0].goal_label}</div>
                           )}
                         </div>
                         <button className="button" onClick={(e) => { e.stopPropagation(); }}>
@@ -393,7 +398,7 @@ const Landing = () => {
               {/* 4 small cards on the right - 2x2 grid */}
               <div className="col-12 col-lg-6">
                 <div className="row">
-                  {fitnessPlans.slice(1, 5).map((plan) => (
+                  {fitnessPlansData.slice(1, 5).map((plan) => (
                     <div className="col-6 mb-4" key={plan.id}>
                       <div 
                         className="small-card card-wrapper"
@@ -426,6 +431,7 @@ const Landing = () => {
               </div>
             </div>
           )}
+          
           <div className="d-flex justify-content-between align-items-center mb-24">
             <h3 className="title-medium">Meals</h3>
             <a href="/meals" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/meals'); }}>
@@ -440,7 +446,7 @@ const Landing = () => {
             </div>
           ) : (
             <div className="row">
-              {meals.map((meal) => (
+              {Array.isArray(mealsData) && mealsData.map((meal) => (
                 <div className="col-12 col-md-6 col-lg-4" key={meal.id}>
                   <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleMealClick(meal.guid)}>
                     <div className="image lg">
@@ -486,8 +492,8 @@ const Landing = () => {
             </div>
           )}
         </div>
-
       </div>
+
       {/* Featured Programs */}
       <div className="bg-gray padding-40">
         <div className="container">
@@ -561,6 +567,8 @@ const Landing = () => {
           )}
         </div>
       </div>
+
+      {/* Rest of the component remains the same */}
       {/* Trusted by 1000+ Customers WorldWide */}
       <div className="padding-40 dark-bg">
         <div className="container">
@@ -575,115 +583,114 @@ const Landing = () => {
             <img src={logo5} alt="" />
           </div>
         </div>
-        </div>
-        {/* Why Choose Us */}
-        <div className="padding-40 bg-gray why-choose-us">
-          <div className="container">
-            <h3 className="title-medium text-center mb-32">Why Choose Us</h3>
-            <div className="row align-items-center">
-              <div className="col-12 col-md-6">
-                <h3 className="title">
-                  From Day One to Your Personal Best Here’s Why Our Gym Delivers Results That Last
-                </h3>
-                <div className="list-item">
-                  <div className="label">
-                    The Gym That Gets You Results
-                  </div>
-                  <p className="text">
-                    Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
-                  </p>
+      </div>
+      
+      {/* Why Choose Us */}
+      <div className="padding-40 bg-gray why-choose-us">
+        <div className="container">
+          <h3 className="title-medium text-center mb-32">Why Choose Us</h3>
+          <div className="row align-items-center">
+            <div className="col-12 col-md-6">
+              <h3 className="title">
+                From Day One to Your Personal Best Here's Why Our Gym Delivers Results That Last
+              </h3>
+              <div className="list-item">
+                <div className="label">
+                  The Gym That Gets You Results
                 </div>
-                 <div className="list-item">
-                  <div className="label">
-                    Your Fitness Journey Starts Here
-                  </div>
-                  <p className="text">
-                    Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
-                  </p>
-                </div>
-                 <div className="list-item">
-                  <div className="label">
-                   Train Smarter. Get Stronger.
-                  </div>
-                  <p className="text">
-                    Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
-                  </p>
-                </div>
+                <p className="text">
+                  Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
+                </p>
               </div>
-              <div className="col-12 col-md-6">
-                <div className="image">
-                  <img src={WhyImage} alt="" />
+              <div className="list-item">
+                <div className="label">
+                  Your Fitness Journey Starts Here
                 </div>
+                <p className="text">
+                  Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
+                </p>
+              </div>
+              <div className="list-item">
+                <div className="label">
+                 Train Smarter. Get Stronger.
+                </div>
+                <p className="text">
+                  Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
+                </p>
+              </div>
+            </div>
+            <div className="col-12 col-md-6">
+              <div className="image">
+                <img src={WhyImage} alt="" />
               </div>
             </div>
           </div>
         </div>
-        {/* Testimonials */}
-        <div className="padding-40 dark-bg">
-          <div className="container">
- <h3 className="title-medium mb-24">What everyone says</h3>
-         <div className="testimonial-slider">
-              {/* Testimonial Slider with react-slick */}
-              <Slider
-                dots={true}
-                infinite={true}
-                speed={500}
-                slidesToShow={4}
-                slidesToScroll={1}
-                arrows={true}
-                cssEase="ease"
-                responsive={[{ breakpoint: 768, settings: { slidesToShow: 1 } }]}
-                className="testimonial-slider"
-              >
-                {[
-                  {
-                    text: "Lacus vestibulum ultricies mi risus, duis non, volutpat nullam non. Magna congue nisi maecenas elit aliquet eu sed consectetur. Vitae quis cras vitae praesent morb.",
-                    user: user1,
-                    name: "Hellen Jummy",
-                    role: "Fitness Trainer",
-                  },
-                  {
-                    text: "Amazing results! The trainers are very supportive and the plans are easy to follow. I achieved my goals faster than expected and felt motivated every step of the way.",
-                    user: user2,
-                    name: "Jason Smith",
-                    role: "Gym Member",
-                  },
-                  {
-                    text: "Best gym experience ever. Highly recommend to anyone serious about fitness. The staff is knowledgeable and the environment is always positive and encouraging.",
-                    user: user3,
-                    name: "Priya Patel",
-                    role: "Athlete",
-                  },
-                  {
-                    text: "Great atmosphere and excellent equipment. I love coming here every day! The trainers provide personalized attention and the community is very welcoming.",
-                    user: user1,
-                    name: "Hellen Jummy",
-                    role: "Fitness Trainer",
-                  },
-                  {
-                    text: "The meal plans are delicious and keep me energized throughout the day. I noticed a big improvement in my performance and overall health since joining.",
-                    user: user2,
-                    name: "Jason Smith",
-                    role: "Gym Member",
-                  },
-                ].map((testimonial, idx) => (
-                  <div className="testimonial-card" key={idx}>
-                    <p className="text">{testimonial.text}</p>
-                    <div className="profile">
-                      <img src={testimonial.user} alt="" />
-                      <div className="info">
-                        <div className="name">{testimonial.name}</div>
-                        <div className="role">{testimonial.role}</div>
-                      </div>
+      </div>
+      
+      {/* Testimonials */}
+      <div className="padding-40 dark-bg">
+        <div className="container">
+          <h3 className="title-medium mb-24">What everyone says</h3>
+          <div className="testimonial-slider">
+            <Slider
+              dots={true}
+              infinite={true}
+              speed={500}
+              slidesToShow={4}
+              slidesToScroll={1}
+              arrows={true}
+              cssEase="ease"
+              responsive={[{ breakpoint: 768, settings: { slidesToShow: 1 } }]}
+              className="testimonial-slider"
+            >
+              {[
+                {
+                  text: "Lacus vestibulum ultricies mi risus, duis non, volutpat nullam non. Magna congue nisi maecenas elit aliquet eu sed consectetur. Vitae quis cras vitae praesent morb.",
+                  user: user1,
+                  name: "Hellen Jummy",
+                  role: "Fitness Trainer",
+                },
+                {
+                  text: "Amazing results! The trainers are very supportive and the plans are easy to follow. I achieved my goals faster than expected and felt motivated every step of the way.",
+                  user: user2,
+                  name: "Jason Smith",
+                  role: "Gym Member",
+                },
+                {
+                  text: "Best gym experience ever. Highly recommend to anyone serious about fitness. The staff is knowledgeable and the environment is always positive and encouraging.",
+                  user: user3,
+                  name: "Priya Patel",
+                  role: "Athlete",
+                },
+                {
+                  text: "Great atmosphere and excellent equipment. I love coming here every day! The trainers provide personalized attention and the community is very welcoming.",
+                  user: user1,
+                  name: "Hellen Jummy",
+                  role: "Fitness Trainer",
+                },
+                {
+                  text: "The meal plans are delicious and keep me energized throughout the day. I noticed a big improvement in my performance and overall health since joining.",
+                  user: user2,
+                  name: "Jason Smith",
+                  role: "Gym Member",
+                },
+              ].map((testimonial, idx) => (
+                <div className="testimonial-card" key={idx}>
+                  <p className="text">{testimonial.text}</p>
+                  <div className="profile">
+                    <img src={testimonial.user} alt="" />
+                    <div className="info">
+                      <div className="name">{testimonial.name}</div>
+                      <div className="role">{testimonial.role}</div>
                     </div>
                   </div>
-                ))}
-              </Slider>
-         </div>
+                </div>
+              ))}
+            </Slider>
           </div>
-        
         </div>
-
+      </div>
     </div>
   );
 };

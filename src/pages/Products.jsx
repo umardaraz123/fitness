@@ -7,6 +7,9 @@ import CartImg from '../assets/images/cart1.svg';
 
 // Helper function to get full image URL
 const getFullImageUrl = (imagePath) => {
+
+  const baseUrl = import.meta.env.VITE_APP_BASE_URL
+
   if (!imagePath) return null;
   // Check if imagePath is a string
   if (typeof imagePath !== 'string') return null;
@@ -15,11 +18,9 @@ const getFullImageUrl = (imagePath) => {
   }
   // Handle file system paths
   if (imagePath.includes('/storage/uploads/')) {
-    const baseUrl = 'https://startuppakistan.himalayatool.com';
     const storagePath = imagePath.substring(imagePath.indexOf('/storage/uploads/'));
     return `${baseUrl}${storagePath}`;
   }
-  const baseUrl = 'https://startuppakistan.himalayatool.com';
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
   return `${baseUrl}${cleanPath}`;
 };

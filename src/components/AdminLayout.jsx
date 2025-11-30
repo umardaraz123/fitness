@@ -1,8 +1,38 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../store/slices/authSlice'; // Adjust import path
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  const handleLogout = async () => {
+    try {
+      // Dispatch logout action
+      await dispatch(logout()).unwrap();
+      
+      // Redirect to login page
+      navigate('/login');
+      
+      // Optional: Show success message
+      console.log('Logout successful');
+      
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Even if API call fails, we can still redirect to login
+      navigate('/login');
+    }
+  };
+
+  const confirmLogout = () => {
+    if (window.confirm('Are you sure you want to logout?')) {
+      handleLogout();
+    }
+  };
 
   return (
     <div className="admin-layout">
@@ -16,11 +46,21 @@ const AdminLayout = () => {
         {/* User Profile */}
         <div className="sidebar-profile">
           <div className="profile-avatar">
-            <img src="/src/assets/images/user1.jpg" alt="Andrew Smith" />
+            <img 
+              src={user?.avatar || "/src/assets/images/user1.jpg"} 
+              alt={user?.name || "Admin User"} 
+              onError={(e) => {
+                e.target.src = "/default-avatar.png";
+              }}
+            />
           </div>
           <div className="profile-info">
-            <span className="profile-label">WORKOUT PLAN TRAINER</span>
-            <span className="profile-name">Andrew Smith</span>
+            <span className="profile-label">
+              {user?.role ? user.role.toUpperCase() : 'ADMIN'}
+            </span>
+            <span className="profile-name">
+              {user?.name || 'Andrew Smith'}
+            </span>
           </div>
         </div>
 
@@ -104,7 +144,10 @@ const AdminLayout = () => {
 
         {/* Logout */}
         <div className="sidebar-footer">
-          <button className="logout-btn">
+          <button 
+            className="logout-btn"
+            onClick={confirmLogout}
+          >
             <span className="logout-icon">🚪</span>
             <span className="logout-text">Logout Account</span>
           </button>

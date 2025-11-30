@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import Logo from '../assets/images/logo.svg';
 import Facebook from '../assets/images/Facebook.png';
-import LinkedIn from '../assets/images/LinkedIn.png';
+import LinkedIn from '../assets/images/Linkedin.png';
 import Twitter from '../assets/images/twitter.png';
 const Footer = () => {
   return (

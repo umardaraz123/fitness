@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import AuthImage from '../assets/images/auth.svg'
 import Logo from '../assets/images/logo.svg'
@@ -6,14 +6,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import OrImage from '../assets/images/or.svg'
 import FbImage from '../assets/images/fb.svg'
 import GoogleImage from '../assets/images/google.svg';
-import { useAuth } from '../context/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { login, clearAuthError } from '../store/slices/authSlice';
 import { useToast } from '../context/ToastContext';
-import { authAPI } from '../services/api.service';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const dispatch = useDispatch();
   const { showSuccess, showError } = useToast();
+  
+  // Get auth state from Redux
+  const { user, isAuthenticated, isLoading, error } = useSelector(state => state.auth);
   
   const [formData, setFormData] = useState({
     email: '',
@@ -22,9 +25,32 @@ const Login = () => {
   });
   
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [apiError, setApiError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User authenticated, redirecting...', { user, isAuthenticated });
+      const timer = setTimeout(() => {
+        if (user.is_admin === 1 || user.is_admin === "1") {
+          navigate('/admin', { replace: true });
+        } else {
+          navigate('/dashboard', { replace: true });
+        }
+      }, 500); // Increased delay to ensure state is fully updated
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  // Handle API errors
+  useEffect(() => {
+    if (error) {
+      showError(error);
+      // Clear error after showing
+      dispatch(clearAuthError());
+    }
+  }, [error, showError, dispatch]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -32,12 +58,10 @@ const Login = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field when user starts typing
+    
+    // Clear local errors when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
-    }
-    if (apiError) {
-      setApiError('');
     }
   };
 
@@ -60,164 +84,153 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setApiError('');
+    
+    // Clear previous errors
+    dispatch(clearAuthError());
+    setErrors({});
     
     if (!validateForm()) {
       return;
     }
     
-    setLoading(true);
-    
     try {
-      // Exact payload structure as per API specification
-      const payload = {
+      const result = await dispatch(login({
         email: formData.email,
         password: formData.password
-      };
-      
-      const response = await authAPI.login(payload);
-      
-      // Response structure: { success, message, data: { user, token, token_type, expires_at } }
-      if (response.success) {
-        // Save user and token to context and localStorage
-        login(response.data.user, response.data.token);
+      }));
+
+      if (login.fulfilled.match(result)) {
+        showSuccess('Login successful! Redirecting...');
+        console.log('Login result:', result.payload);
         
-        // Show success message
-        showSuccess(response.message || 'Login successful!');
+        // Check if token was saved
+        const token = localStorage.getItem('authToken');
+        const userData = localStorage.getItem('authUser');
         
-        // Redirect based on user role after a short delay
-        setTimeout(() => {
-          // Check is_admin field (0 or 1) from the user object
-          if (response.data.user.is_admin === "1" || response.data.user.is_admin === 1) {
-            navigate('/admin');
-          } else {
-            navigate('/dashboard');
-          }
-        }, 500);
+        if (token && userData) {
+          console.log('Token and user data saved successfully in localStorage');
+        } else {
+          console.error('Failed to save auth data to localStorage');
+        }
+        
+      } else if (login.rejected.match(result)) {
+        console.error('Login failed:', result.payload);
+        // Error is automatically handled by Redux and useEffect
       }
     } catch (error) {
-      console.error('Login error:', error);
-      
-      if (error.response?.data?.errors) {
-        // Handle validation errors from backend
-        setErrors(error.response.data.errors);
-        showError('Please fix the errors in the form');
-      } else if (error.response?.data?.message) {
-        setApiError(error.response.data.message);
-        showError(error.response.data.message);
-      } else {
-        setApiError('Login failed. Please check your credentials and try again.');
-        showError('Login failed. Please check your credentials and try again.');
-      }
-    } finally {
-      setLoading(false);
+      console.error('Unexpected login error:', error);
+      showError('An unexpected error occurred');
     }
   };
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
+    if (!isLoading) {
+      setShowPassword(!showPassword);
+    }
   };
+
   return (
     <div className="login-wrapper">
       <div className="left">
- <div className="content">
-    <div className="logo">
-    <img src={Logo} alt="" />
- </div>
- <h2 className="title text-center">
-    Sign in to your Account
- </h2>
- <p className="text text-center px-4">
-    Your journey to a healthier, fitter, and more confident lifestyle starts with one simple step today.
- </p>
- 
- {apiError && (
-   <div style={{ 
-     padding: '12px', 
-     marginBottom: '16px', 
-     backgroundColor: '#ff444420', 
-     border: '1px solid #ff4444', 
-     borderRadius: '8px',
-     color: '#ff4444',
-     fontSize: '14px'
-   }}>
-     {apiError}
-   </div>
- )}
- 
- <form onSubmit={handleLogin}>
-   <label htmlFor="email" className="label">
-      Email
-   </label>
-   <input 
-     type="email" 
-     id="email"
-     name="email"
-     className={`input ${errors.email ? 'error' : ''}`}
-     placeholder='john123@gmail.com' 
-     value={formData.email} 
-     onChange={handleInputChange}
-     disabled={loading}
-   />
-   {errors.email && <span style={{ color: '#ff4444', fontSize: '12px', marginTop: '-12px', marginBottom: '12px', display: 'block' }}>{errors.email}</span>}
-   
-   <label htmlFor="password" className="label">
-     Password
-   </label>
-   <div className="input-wrapper">
-      <div className="icon" onClick={togglePasswordVisibility} style={{ cursor: loading ? 'not-allowed' : 'pointer' }}>
-        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        <div className="content">
+          <div className="logo">
+            <img src={Logo} alt="Logo" />
+          </div>
+          <h2 className="title text-center">
+            Sign in to your Account
+          </h2>
+          <p className="text text-center px-4">
+            Your journey to a healthier, fitter, and more confident lifestyle starts with one simple step today.
+          </p>
+          
+          <form onSubmit={handleLogin}>
+            <label htmlFor="email" className="label">
+              Email
+            </label>
+            <input 
+              type="email" 
+              id="email"
+              name="email"
+              className={`input ${errors.email ? 'error' : ''}`}
+              placeholder='john123@gmail.com' 
+              value={formData.email} 
+              onChange={handleInputChange}
+              disabled={isLoading}
+            />
+            {errors.email && <span style={{ color: '#ff4444', fontSize: '12px', marginTop: '-12px', marginBottom: '12px', display: 'block' }}>{errors.email}</span>}
+            
+            <label htmlFor="password" className="label">
+              Password
+            </label>
+            <div className="input-wrapper">
+              <div 
+                className="icon" 
+                onClick={togglePasswordVisibility}
+                style={{ cursor: isLoading ? 'not-allowed' : 'pointer' }}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </div>
+              <input 
+                type={showPassword ? 'text' : 'password'} 
+                id="password"
+                name="password"
+                className={`input ${errors.password ? 'error' : ''}`}
+                placeholder='Enter your password' 
+                value={formData.password} 
+                onChange={handleInputChange}
+                disabled={isLoading}
+              />
+            </div>
+            {errors.password && <span style={{ color: '#ff4444', fontSize: '12px', marginTop: '-12px', marginBottom: '12px', display: 'block' }}>{errors.password}</span>}
+            
+            <button 
+              className="button" 
+              type="submit" 
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+            
+            <div className="remember-me">
+              <div className="leftt">
+                <input 
+                  type="checkbox" 
+                  id="rememberMe" 
+                  name="rememberMe"
+                  checked={formData.rememberMe} 
+                  onChange={handleInputChange}
+                  disabled={isLoading}
+                />
+                <label htmlFor="rememberMe">Remember Me</label>
+              </div>
+              <Link to="/forgot-password" className="forgot-password">
+                Forgot Password?
+              </Link>
+            </div>
+          </form>
+          
+          <div className="or">
+            <img src={OrImage} alt="Or" />
+          </div>
+          
+          <button className="social-button" disabled={isLoading}>
+            <img src={FbImage} alt="Facebook" />
+            Continue with Facebook
+          </button>
+          
+          <button className="social-button" disabled={isLoading}>
+            <img src={GoogleImage} alt="Google" />
+            Continue with Google
+          </button>
+          
+          <div className="dont-have-account">
+            Don't have an account? <Link to="/register">Sign Up</Link>
+          </div>
+        </div>
       </div>
-      <input 
-        type={showPassword ? 'text' : 'password'} 
-        id="password"
-        name="password"
-        className={`input ${errors.password ? 'error' : ''}`}
-        placeholder='Enter your password' 
-        value={formData.password} 
-        onChange={handleInputChange}
-        disabled={loading}
-      />
-   </div>
-   {errors.password && <span style={{ color: '#ff4444', fontSize: '12px', marginTop: '-12px', marginBottom: '12px', display: 'block' }}>{errors.password}</span>}
-   
-   <button className="button" type="submit" disabled={loading}>
-      {loading ? 'Logging in...' : 'Login'}
-   </button>
-   
-   <div className="remember-me">
-      <div className="leftt">
-           <input 
-             type="checkbox" 
-             id="rememberMe" 
-             name="rememberMe"
-             checked={formData.rememberMe} 
-             onChange={handleInputChange}
-             disabled={loading}
-           />
-           <label htmlFor="rememberMe">Remember Me</label>
-      </div>
-      <Link to="/forgot-password" className="forgot-password">Forgot Password?</Link>
-   </div>
- </form>
- <div className="or">
-    <img src={OrImage} alt="" />
- </div>
- <button className="social-button">
-   <img src={FbImage} alt="" />
-  Continue with Facebook
- </button>
- <button className="social-button">
-   <img src={GoogleImage} alt="" />
-   Continue with Google
- </button>
- <div className="dont-have-account">
-    Don't have an account? <Link to="/register" >Sign Up</Link>
- </div>
- </div>
-      </div>
+      
       <div className="right">
-        <img src={AuthImage} alt="" className="img" />
+        <img src={AuthImage} alt="Authentication" className="img" />
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
   const [imagePreview, setImagePreview] = useState('');
   const [galleryPreviews, setGalleryPreviews] = useState([]);
   const [errors, setErrors] = useState({});
+  const [imageLoading, setImageLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,20 +36,25 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
 
   const fetchCategories = async () => {
     try {
+      setLoading(true);
       const response = await productAPI.getCategories();
       if (response.success) {
-        // Filter only product categories
         const productCategories = (response.data || []).filter(cat => cat.type === 'products');
         setCategories(productCategories);
+      } else {
+        showError('Failed to load categories');
       }
     } catch (error) {
       console.error('Error fetching categories:', error);
-      showError('Failed to load categories');
+      showError(getErrorMessage(error, 'Failed to load categories'));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (product) {
+    if (product && isOpen) {
+      // Set form data from existing product
       setFormData({
         name: product.name || '',
         description: product.description || '',
@@ -64,44 +70,66 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
         image: null,
         gallery_images: []
       });
-      // Use gallery images URL for preview
-      const mainImageUrl = product.gallery_images && product.gallery_images.length > 0 
-        ? product.gallery_images[0].url 
-        : '';
-      setImagePreview(mainImageUrl);
-      // Map gallery_images array to get URLs
-      const galleryUrls = (product.gallery_images || []).map(img => img.url || img);
-      setGalleryPreviews(galleryUrls);
-    } else {
+
+      // Set main image preview - check multiple possible image paths
+      const mainImageUrl = product.image_url || 
+                          product.image?.url || 
+                          (product.gallery_images && product.gallery_images.length > 0 ? product.gallery_images[0].image_url : '');
+      setImagePreview(mainImageUrl || '');
+
+      // Set gallery images previews using image_url
+      const galleryUrls = (product.gallery_images || [])
+        .map(img => img.image_url || img.url || img) // Try image_url first, then fallback to url or the object itself
+        .filter(url => {
+          // Filter out empty URLs and avoid duplicating the main image
+          if (!url) return false;
+          // If this URL matches the main image preview, exclude it from gallery
+          return url !== mainImageUrl;
+        });
+      
+      setGalleryPreviews(galleryUrls.map(url => ({ url, isExisting: true })));
+    } else if (isOpen) {
       // Reset form for new product
-      setFormData({
-        name: '',
-        description: '',
-        category_id: '',
-        price: '',
-        discount_price: '',
-        status: 'active',
-        is_featured: 0,
-        benefits: '',
-        suggested_use: '',
-        nutritional_information: '',
-        flavor: '',
-        image: null,
-        gallery_images: []
-      });
-      setImagePreview('');
-      setGalleryPreviews([]);
+      resetForm();
     }
     setErrors({});
   }, [product, isOpen]);
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      category_id: '',
+      price: '',
+      discount_price: '',
+      status: 'active',
+      is_featured: 0,
+      benefits: '',
+      suggested_use: '',
+      nutritional_information: '',
+      flavor: '',
+      image: null,
+      gallery_images: []
+    });
+    setImagePreview('');
+    setGalleryPreviews([]);
+    setErrors({});
+  };
+
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, files } = e.target;
+    
+    if (type === 'file') {
+      // File inputs are handled separately
+      return;
+    }
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (checked ? 1 : 0) : value
     }));
     
+    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -109,35 +137,118 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
 
   const handleMainImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setFormData(prev => ({ ...prev, image: file }));
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showError('Please select a valid image file');
+      e.target.value = ''; // Reset file input
+      return;
     }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError('Image size should be less than 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, image: file }));
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadstart = () => setImageLoading(true);
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+      setImageLoading(false);
+    };
+    reader.onerror = () => {
+      showError('Failed to load image');
+      setImageLoading(false);
+      e.target.value = '';
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGalleryImagesChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 0) {
-      setFormData(prev => ({ 
-        ...prev, 
-        gallery_images: [...prev.gallery_images, ...files]
-      }));
-      
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setGalleryPreviews(prev => [...prev, reader.result]);
-        };
-        reader.readAsDataURL(file);
-      });
+    if (files.length === 0) return;
+
+    const validFiles = [];
+    const invalidFiles = [];
+
+    // Validate each file
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) {
+        invalidFiles.push(file.name);
+      } else if (file.size > 5 * 1024 * 1024) {
+        invalidFiles.push(`${file.name} (too large)`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    // Show error for invalid files
+    if (invalidFiles.length > 0) {
+      showError(`Invalid files: ${invalidFiles.join(', ')}. Please select valid images under 5MB.`);
     }
+
+    if (validFiles.length === 0) {
+      e.target.value = '';
+      return;
+    }
+
+    // Check total gallery images limit (e.g., max 10)
+    const totalAfterAdd = formData.gallery_images.length + validFiles.length;
+    if (totalAfterAdd > 10) {
+      showError('Maximum 10 gallery images allowed');
+      e.target.value = '';
+      return;
+    }
+
+    setFormData(prev => ({ 
+      ...prev, 
+      gallery_images: [...prev.gallery_images, ...validFiles]
+    }));
+
+    // Create previews for valid files
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGalleryPreviews(prev => [...prev, {
+          url: reader.result,
+          name: file.name,
+          type: file.type,
+          isExisting: false // Mark as new upload
+        }]);
+      };
+      reader.onerror = () => {
+        showError(`Failed to load image: ${file.name}`);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = ''; // Reset file input
+  };
+
+  const removeMainImage = () => {
+    setFormData(prev => ({ ...prev, image: null }));
+    setImagePreview('');
+    // Reset file input
+    const fileInput = document.getElementById('image');
+    if (fileInput) fileInput.value = '';
   };
 
   const removeGalleryImage = (index) => {
+    // Check if it's an existing image or a new upload
+    const isExistingImage = galleryPreviews[index]?.isExisting;
+    
+    if (isExistingImage) {
+      // For existing images, we need to handle deletion differently
+      // You might want to add to a "toDelete" array or handle in your API
+      console.log('Removing existing gallery image at index:', index);
+    }
+    
     setFormData(prev => ({
       ...prev,
       gallery_images: prev.gallery_images.filter((_, i) => i !== index)
@@ -151,9 +262,22 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
     if (!formData.name.trim()) newErrors.name = 'Product name is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category_id) newErrors.category_id = 'Category is required';
-    if (!formData.price) newErrors.price = 'Price is required';
-    if (formData.price && isNaN(formData.price)) newErrors.price = 'Price must be a number';
     
+    if (!formData.price) {
+      newErrors.price = 'Price is required';
+    } else if (isNaN(formData.price) || parseFloat(formData.price) < 0) {
+      newErrors.price = 'Price must be a valid positive number';
+    }
+    
+    if (formData.discount_price && 
+        (isNaN(formData.discount_price) || parseFloat(formData.discount_price) < 0)) {
+      newErrors.discount_price = 'Discount price must be a valid positive number';
+    }
+    
+    if (formData.discount_price && parseFloat(formData.discount_price) >= parseFloat(formData.price)) {
+      newErrors.discount_price = 'Discount price must be less than regular price';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -162,7 +286,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
     e.preventDefault();
     
     if (!validateForm()) {
-      showError('Please fill all required fields');
+      showError('Please fix the validation errors before submitting');
       return;
     }
 
@@ -171,30 +295,19 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
     try {
       const formDataToSend = new FormData();
       
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('category_id', formData.category_id);
-      formDataToSend.append('price', formData.price);
-      formDataToSend.append('status', formData.status);
-      formDataToSend.append('is_featured', formData.is_featured);
+      // Append all basic fields
+      const fields = [
+        'name', 'description', 'category_id', 'price', 'status', 'is_featured',
+        'discount_price', 'benefits', 'suggested_use', 'nutritional_information', 'flavor'
+      ];
       
-      if (formData.discount_price) {
-        formDataToSend.append('discount_price', formData.discount_price);
-      }
-      if (formData.benefits) {
-        formDataToSend.append('benefits', formData.benefits);
-      }
-      if (formData.suggested_use) {
-        formDataToSend.append('suggested_use', formData.suggested_use);
-      }
-      if (formData.nutritional_information) {
-        formDataToSend.append('nutritional_information', formData.nutritional_information);
-      }
-      if (formData.flavor) {
-        formDataToSend.append('flavor', formData.flavor);
-      }
-      
-      // Add main image
+      fields.forEach(field => {
+        if (formData[field] !== '' && formData[field] !== null) {
+          formDataToSend.append(field, formData[field]);
+        }
+      });
+
+      // Add main image if selected
       if (formData.image) {
         formDataToSend.append('image', formData.image);
       }
@@ -204,6 +317,11 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
         formDataToSend.append('gallery_images[]', file);
       });
 
+      // If editing, include the product GUID
+      if (product) {
+        formDataToSend.append('_method', 'PUT'); // For Laravel or similar frameworks
+      }
+
       let response;
       if (product) {
         response = await productAPI.updateProduct(product.guid, formDataToSend);
@@ -212,32 +330,54 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
       }
 
       if (response.success) {
-        showSuccess(product ? 'Product updated successfully' : 'Product created successfully');
+        const successMessage = product ? 'Product updated successfully' : 'Product created successfully';
+        showSuccess(successMessage);
         onSave();
         onClose();
+        resetForm();
+      } else {
+        throw new Error(response.message || 'Operation failed');
       }
     } catch (error) {
       console.error('Error saving product:', error);
       
+      // Handle validation errors from backend
       if (error.response?.data?.errors) {
-        setErrors(error.response.data.errors);
+        const backendErrors = error.response.data.errors;
+        setErrors(backendErrors);
+        
+        // Show first error as toast
+        const firstError = Object.values(backendErrors)[0];
+        if (firstError) {
+          showError(Array.isArray(firstError) ? firstError[0] : firstError);
+        }
+      } else {
+        showError(getErrorMessage(error, 'Failed to save product'));
       }
-      
-      // Show formatted validation errors or generic error message
-      showError(getErrorMessage(error));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      resetForm();
+      onClose();
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content product-form-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{product ? 'Edit Product' : 'Create New Product'}</h2>
-          <button className="modal-close" onClick={onClose}>
+          <button 
+            className="modal-close" 
+            onClick={handleClose}
+            disabled={loading}
+          >
             <X size={24} />
           </button>
         </div>
@@ -305,6 +445,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 id="price"
                 name="price"
                 className={errors.price ? 'error' : ''}
@@ -321,13 +462,16 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
               <input
                 type="number"
                 step="0.01"
+                min="0"
                 id="discount_price"
                 name="discount_price"
+                className={errors.discount_price ? 'error' : ''}
                 value={formData.discount_price}
                 onChange={handleChange}
                 placeholder="0.00"
                 disabled={loading}
               />
+              {errors.discount_price && <span className="error-text">{errors.discount_price}</span>}
             </div>
 
             <div className="form-group">
@@ -345,7 +489,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="is_featured" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <label htmlFor="is_featured" className="checkbox-label">
                 <input
                   type="checkbox"
                   id="is_featured"
@@ -353,7 +497,6 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
                   checked={formData.is_featured === 1}
                   onChange={handleChange}
                   disabled={loading}
-                  style={{ cursor: 'pointer' }}
                 />
                 Featured Product
               </label>
@@ -419,6 +562,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
             {/* Images */}
             <div className="form-section full-width">
               <h3>Product Images</h3>
+              <p className="form-hint">Supported formats: JPG, PNG, WebP. Max file size: 5MB</p>
             </div>
 
             <div className="form-group full-width">
@@ -431,25 +575,41 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
                 onChange={handleMainImageChange}
                 disabled={loading}
               />
-              {imagePreview && (
-                <div style={{ marginTop: '10px' }}>
-                  <img 
-                    src={imagePreview} 
-                    alt="Main Preview" 
-                    style={{ 
-                      width: '150px', 
-                      height: '150px', 
-                      objectFit: 'cover', 
-                      borderRadius: '8px',
-                      border: '1px solid #3a3a3a'
-                    }} 
-                  />
+              
+              {(imagePreview || imageLoading) && (
+                <div className="image-preview-container">
+                  {imageLoading ? (
+                    <div className="image-loading">Loading image...</div>
+                  ) : (
+                    <>
+                      <img 
+                        src={imagePreview} 
+                        alt="Main Preview" 
+                        className="image-preview"
+                        onError={(e) => {
+                          console.error('Failed to load image preview');
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={removeMainImage}
+                        className="remove-image-btn"
+                        disabled={loading}
+                      >
+                        ×
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
+              {errors.image && <span className="error-text">{errors.image}</span>}
             </div>
 
             <div className="form-group full-width">
-              <label htmlFor="gallery_images">Gallery Images (Multiple)</label>
+              <label htmlFor="gallery_images">
+                Gallery Images (Max 10 images)
+              </label>
               <input
                 type="file"
                 id="gallery_images"
@@ -457,55 +617,43 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
                 accept="image/*"
                 multiple
                 onChange={handleGalleryImagesChange}
-                disabled={loading}
+                disabled={loading || galleryPreviews.length >= 10}
               />
+              <p className="form-hint">
+                {galleryPreviews.length}/10 images selected
+                {galleryPreviews.some(img => img.isExisting) && ' (including existing images)'}
+              </p>
+              
               {galleryPreviews.length > 0 && (
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '12px', 
-                  marginTop: '12px', 
-                  flexWrap: 'wrap' 
-                }}>
+                <div className="gallery-previews">
                   {galleryPreviews.map((preview, index) => (
-                    <div key={index} style={{ position: 'relative' }}>
+                    <div key={index} className="gallery-preview-item">
                       <img 
-                        src={preview} 
-                        alt={`Preview ${index + 1}`} 
-                        style={{ 
-                          width: '100px', 
-                          height: '100px', 
-                          objectFit: 'cover', 
-                          borderRadius: '8px',
-                          border: '1px solid #3a3a3a'
-                        }} 
+                        src={preview.url} 
+                        alt={`Gallery preview ${index + 1}`}
+                        className="gallery-preview"
+                        onError={(e) => {
+                          console.error('Failed to load gallery image preview');
+                          e.target.style.display = 'none';
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => removeGalleryImage(index)}
-                        style={{
-                          position: 'absolute',
-                          top: '-8px',
-                          right: '-8px',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: '#ff4444',
-                          border: 'none',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 'bold'
-                        }}
+                        className="remove-image-btn"
+                        disabled={loading}
+                        title={preview.isExisting ? 'Remove existing image' : 'Remove new image'}
                       >
                         ×
                       </button>
+                      {preview.isExisting && (
+                        <div className="existing-image-badge">Existing</div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
+              {errors.gallery_images && <span className="error-text">{errors.gallery_images}</span>}
             </div>
           </div>
 
@@ -513,7 +661,7 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
             <button
               type="button"
               className="btn-cancel"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={loading}
             >
               Cancel
@@ -523,7 +671,14 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
               className="btn-submit"
               disabled={loading}
             >
-              {loading ? 'Saving...' : product ? 'Update Product' : 'Create Product'}
+              {loading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  {product ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                product ? 'Update Product' : 'Create Product'
+              )}
             </button>
           </div>
         </form>
