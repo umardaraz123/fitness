@@ -214,9 +214,19 @@ const Landing = () => {
   };
 
   // Extract actual data from Redux state
-  const productsData = products?.data?.data || products?.data || products || [];
-  const mealsData = meals?.data?.data || meals?.data || meals || [];
-  const fitnessPlansData = fitnessPlans?.data?.data || fitnessPlans?.data || fitnessPlans || [];
+  // The hooks spread the slice state, so we access the arrays directly
+  // Products: { products: [], adminProducts: [], ... }
+  // Meals: { meals: [], ... }
+  // Plans: { plans: [], ... } - but fitnessPlans is actually the whole slice
+  
+  // Debug: Log to see what we're getting
+  console.log('Products state:', products);
+  console.log('Meals state:', meals);
+  console.log('FitnessPlans state:', fitnessPlans);
+  
+  const productsData = Array.isArray(products) ? products : [];
+  const mealsData = Array.isArray(meals) ? meals : [];
+  const fitnessPlansData = Array.isArray(fitnessPlans) ? fitnessPlans : [];
 
   return (
     <div className="landing-container">

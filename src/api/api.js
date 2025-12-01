@@ -891,6 +891,202 @@ export const chatAPI = {
   }
 };
 
+// Gallery Images APIs
+export const galleryImageAPI = {
+  // Get all gallery images with filters
+  getGalleryImages: async (params = {}) => {
+    const response = await axiosInstance.get('/gallery-images', { params });
+    return response.data;
+  },
+
+  // Get gallery image by ID
+  getGalleryImageById: async (id) => {
+    const response = await axiosInstance.get(`/gallery-images/${id}`);
+    return response.data;
+  },
+
+  // Get gallery image by GUID
+  getGalleryImageByGuid: async (guid) => {
+    const response = await axiosInstance.get(`/gallery-images/guid/${guid}`);
+    return response.data;
+  },
+
+  // Get all gallery images for admin
+  getGalleryImagesAdmin: async (params = {}) => {
+    const response = await axiosInstance.get('/auth/gallery-images', { params });
+    return response.data;
+  },
+
+  // Get gallery image by ID for admin
+  getGalleryImageByIdAdmin: async (id) => {
+    const response = await axiosInstance.get(`/auth/gallery-images/${id}`);
+    return response.data;
+  },
+
+  // Create gallery image
+  createGalleryImage: async (data) => {
+    const response = await axiosInstance.post('/auth/gallery-images', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Create multiple gallery images
+  createMultipleGalleryImages: async (files, imageableData = {}) => {
+    const formData = new FormData();
+    
+    // Add multiple files
+    files.forEach(file => {
+      formData.append('gallery_images[]', file);
+    });
+    
+    // Add imageable data
+    Object.keys(imageableData).forEach(key => {
+      formData.append(key, imageableData[key]);
+    });
+
+    const response = await axiosInstance.post('/auth/gallery-images/multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Update gallery image
+  updateGalleryImage: async (id, data) => {
+    const response = await axiosInstance.post(`/auth/gallery-images/${id}`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete gallery image (force delete with file cleanup)
+  deleteGalleryImage: async (id) => {
+    const response = await axiosInstance.delete(`/auth/gallery-images/${id}`);
+    return response.data;
+  },
+
+  // Safe delete gallery image (with validation)
+  safeDeleteGalleryImage: async (id) => {
+    const response = await axiosInstance.delete(`/auth/gallery-images/${id}/safe`);
+    return response.data;
+  },
+
+  // Bulk delete multiple gallery images
+  bulkDeleteGalleryImages: async (imageIds) => {
+    const response = await axiosInstance.delete('/auth/gallery-images/bulk/delete', { 
+      data: { ids: imageIds } 
+    });
+    return response.data;
+  },
+
+  // Set image as featured
+  setAsFeatured: async (id) => {
+    const response = await axiosInstance.put(`/auth/gallery-images/${id}/featured`);
+    return response.data;
+  },
+
+  // Update image position
+  updatePosition: async (id, position) => {
+    const response = await axiosInstance.put(`/auth/gallery-images/${id}/position`, { position });
+    return response.data;
+  },
+
+  // Reorder images
+  reorderImages: async (imageableId, imageableType, order) => {
+    const response = await axiosInstance.put('/auth/gallery-images/reorder', {
+      imageable_id: imageableId,
+      imageable_type: imageableType,
+      order
+    });
+    return response.data;
+  },
+
+  // Get images by imageable model
+  getImagesByModel: async (imageableId, imageableType, params = {}) => {
+    const response = await axiosInstance.get('/gallery-images/model', {
+      params: {
+        imageable_id: imageableId,
+        imageable_type: imageableType,
+        ...params
+      }
+    });
+    return response.data;
+  },
+
+  // Get images by imageable model for admin
+  getImagesByModelAdmin: async (imageableId, imageableType, params = {}) => {
+    const response = await axiosInstance.get('/auth/gallery-images/model', {
+      params: {
+        imageable_id: imageableId,
+        imageable_type: imageableType,
+        ...params
+      }
+    });
+    return response.data;
+  },
+
+  // Upload and attach images to model
+  uploadAndAttachImages: async (files, imageableId, imageableType, additionalData = {}) => {
+    const formData = new FormData();
+    
+    // Add multiple files
+    files.forEach(file => {
+      formData.append('gallery_images[]', file);
+    });
+    
+    // Add imageable data
+    formData.append('imageable_id', imageableId);
+    formData.append('imageable_type', imageableType);
+    
+    // Add additional data
+    Object.keys(additionalData).forEach(key => {
+      formData.append(key, additionalData[key]);
+    });
+
+    const response = await axiosInstance.post('/auth/gallery-images/upload-attach', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Detach image from model (soft delete)
+  detachImage: async (id) => {
+    const response = await axiosInstance.put(`/auth/gallery-images/${id}/detach`);
+    return response.data;
+  },
+
+  // Restore soft deleted image
+  restoreImage: async (id) => {
+    const response = await axiosInstance.put(`/auth/gallery-images/${id}/restore`);
+    return response.data;
+  },
+
+  // Get image statistics
+  getImageStats: async () => {
+    const response = await axiosInstance.get('/auth/gallery-images/stats');
+    return response.data;
+  },
+
+  // Search images
+  searchImages: async (searchTerm, params = {}) => {
+    const response = await axiosInstance.get('/auth/gallery-images/search', {
+      params: {
+        search: searchTerm,
+        ...params
+      }
+    });
+    return response.data;
+  }
+};
+
 // Export all APIs
 export default {
   auth: authAPI,
@@ -906,5 +1102,6 @@ export default {
   membership: membershipAPI,
   upload: uploadAPI,
   notification: notificationAPI,
-  chat: chatAPI
+  chat: chatAPI,
+  galleryImage: galleryImageAPI
 };

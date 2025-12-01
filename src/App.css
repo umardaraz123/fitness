@@ -7714,7 +7714,7 @@ padding: 40px;
 .btn-cancel {
   background: transparent;
   border: 1px solid #3a3a3a;
-  color: #fff;
+  /* color: #fff; */
 }
 
 .btn-cancel:hover {

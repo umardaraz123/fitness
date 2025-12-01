@@ -46,15 +46,19 @@ const PlanDetail = () => {
     setLoading(true);
     try {
       const response = await planAPI.getPlanById(id);
+      
       if (response.success && response.data) {
-        setPlan(response.data);
+        const planData = response.data;
+        setPlan(planData);
         
-        // Set initial selected image
-        if (response.data.image_url) {
-          setSelectedImage(getFullImageUrl(response.data.image_url));
-        } else if (response.data.gallery_images && response.data.gallery_images.length > 0) {
-          const imageUrl = response.data.gallery_images[0].url || response.data.gallery_images[0];
-          setSelectedImage(getFullImageUrl(imageUrl));
+        // Set initial selected image - API returns full URLs
+        if (planData.image_url) {
+          // Clean URL (remove escaped slashes if any)
+          setSelectedImage(planData.image_url.replace(/\\\//g, '/'));
+        } else if (planData.gallery_images && planData.gallery_images.length > 0) {
+          const firstImage = planData.gallery_images[0];
+          const imageUrl = firstImage.image_url || firstImage;
+          setSelectedImage(typeof imageUrl === 'string' ? imageUrl.replace(/\\\//g, '/') : '');
         }
       }
     } catch (error) {
@@ -104,17 +108,27 @@ const PlanDetail = () => {
     if (!plan) return [];
     const images = [];
     
+    // Add main image first
     if (plan.image_url) {
-      images.push(getFullImageUrl(plan.image_url));
+      // Clean the URL (remove escaped slashes if any)
+      const cleanUrl = plan.image_url.replace(/\\\//g, '/');
+      images.push(cleanUrl);
     }
     
-    if (plan.gallery_images && Array.isArray(plan.gallery_images)) {
-      plan.gallery_images.forEach(img => {
-        const imageUrl = typeof img === 'string' ? img : (img.url || img.image_url);
+    // Add gallery images
+    if (plan.gallery_images && plan.gallery_images.length > 0) {
+      for (let i = 0; i < plan.gallery_images.length; i++) {
+        const img = plan.gallery_images[i];
+        const imageUrl = img.image_url;
+        
         if (imageUrl) {
-          images.push(getFullImageUrl(imageUrl));
+          // Clean the URL (remove escaped slashes if any)
+          const cleanUrl = imageUrl.replace(/\\\//g, '/');
+          if (!images.includes(cleanUrl)) {
+            images.push(cleanUrl);
+          }
         }
-      });
+      }
     }
     
     return images;
@@ -158,8 +172,8 @@ const PlanDetail = () => {
             <div className="col-md-6">
               <div style={{ display: 'flex', gap: '16px' }}>
                 {/* Thumbnail Gallery on Left */}
-                {galleryImages.length > 1 && (
-                  <div className="thumbnail-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {galleryImages.length > 0 && (
+                  <div className="thumbnail-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto' }}>
                     {galleryImages.map((img, idx) => (
                       <div
                         key={idx}
@@ -171,7 +185,11 @@ const PlanDetail = () => {
                           border: selectedImage === img ? '2px solid #ff6b35' : '2px solid rgba(255,255,255,0.2)',
                           borderRadius: '8px',
                           overflow: 'hidden',
-                          flexShrink: 0
+                          flexShrink: 0,
+                          background: 'rgba(255,255,255,0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}
                       >
                         <img 
@@ -179,8 +197,11 @@ const PlanDetail = () => {
                           alt={`${plan.title} ${idx + 1}`}
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           onError={(e) => {
+                            // Image failed to load (403 error), show placeholder
+                            e.target.onerror = null;
                             e.target.style.display = 'none';
-                            e.target.parentElement.innerHTML = '<div style="width: 100%; height: 100%; display: flex; alignItems: center; justifyContent: center; fontSize: 32px; background: rgba(255,255,255,0.05);">🏋️</div>';
+                            e.target.parentElement.style.fontSize = '28px';
+                            e.target.parentElement.innerText = '🏋️';
                           }}
                         />
                       </div>

@@ -131,7 +131,8 @@ const productSlice = createSlice({
       })
       .addCase(getProducts.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.products = action.payload.products;
+        // API returns { success, message, data: [...] }
+        state.products = action.payload.data || action.payload.products || [];
       })
       .addCase(getProducts.rejected, (state, action) => {
         state.isLoading = false;
@@ -139,23 +140,31 @@ const productSlice = createSlice({
       })
       // Get Product By ID
       .addCase(getProductById.fulfilled, (state, action) => {
-        state.currentProduct = action.payload.product;
+        // API returns { success, message, data: {...} }
+        state.currentProduct = action.payload.data || action.payload.product || null;
       })
       // Get Products Admin
       .addCase(getProductsAdmin.fulfilled, (state, action) => {
-        state.adminProducts = action.payload.products;
+        // API returns { success, message, data: [...] }
+        state.adminProducts = action.payload.data || action.payload.products || [];
       })
       // Create Product
       .addCase(createProduct.fulfilled, (state, action) => {
-        state.adminProducts.push(action.payload.product);
+        const newProduct = action.payload.data || action.payload.product;
+        if (newProduct) {
+          state.adminProducts.push(newProduct);
+        }
       })
       // Update Product
       .addCase(updateProduct.fulfilled, (state, action) => {
-        const index = state.adminProducts.findIndex(
-          product => product.id === action.payload.product.id
-        );
-        if (index !== -1) {
-          state.adminProducts[index] = action.payload.product;
+        const updatedProduct = action.payload.data || action.payload.product;
+        if (updatedProduct) {
+          const index = state.adminProducts.findIndex(
+            product => product.id === updatedProduct.id
+          );
+          if (index !== -1) {
+            state.adminProducts[index] = updatedProduct;
+          }
         }
       })
       // Delete Product
@@ -166,7 +175,8 @@ const productSlice = createSlice({
       })
       // Get Categories
       .addCase(getCategories.fulfilled, (state, action) => {
-        state.categories = action.payload.categories;
+        // API returns { success, message, data: [...] }
+        state.categories = action.payload.data || action.payload.categories || [];
       });
   },
 });
