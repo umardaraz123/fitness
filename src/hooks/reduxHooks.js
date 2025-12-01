@@ -77,7 +77,7 @@ import {
   createWorkoutPlan,
   updateWorkoutPlan,
   getClientQuestionnaire,
-  sendMessage,
+  sendMessage as sendAdminMessage,
   getMessages,
   clearAdminError,
   
@@ -92,6 +92,43 @@ import {
   getProgramById,
   submitQuestionnaire,
   clearFitnessProgramError,
+
+  // Gallery Images Actions
+  deleteGalleryImage,
+  safeDeleteGalleryImage,
+  bulkDeleteGalleryImages,
+  setAsFeatured,
+  updateImagePosition,
+  reorderImages,
+  uploadAndAttachImages,
+  detachImage,
+  restoreImage,
+  clearDeleteError,
+  clearBulkDeleteResults,
+  clearFeatureError,
+  clearPositionError,
+  clearGalleryUploadError, // FIXED: Changed from clearUploadError
+  clearOperationError,
+  clearSuccessMessage,
+  clearAllErrors,
+  resetGalleryImageState,
+
+  // Upload Actions
+  uploadFile,
+  uploadMultipleFiles,
+  deleteFile,
+  setSingleUploadProgress,
+  setMultipleUploadProgress,
+  clearUploadedFile,
+  clearUploadedFiles,
+  clearSingleUploadError,
+  clearMultipleUploadError,
+  clearFileDeleteError,
+  clearUploadSuccessMessage,
+  clearAllUploads,
+  addToRecentUploads,
+  removeFromRecentUploads,
+  resetUploadState,
 } from '../store/slices';
 
 export const useAppDispatch = () => useDispatch();
@@ -468,7 +505,7 @@ export const useAdmin = () => {
   }, [dispatch]);
 
   const handleSendMessage = useCallback((clientId, message) => {
-    return dispatch(sendMessage({ clientId, message }));
+    return dispatch(sendAdminMessage({ clientId, message }));
   }, [dispatch]);
 
   const handleGetMessages = useCallback((clientId) => {
@@ -552,7 +589,217 @@ export const useFitnessPrograms = () => {
   };
 };
 
-// Notification Hook (for existing notifications slice)
+// Gallery Images Hook
+export const useGalleryImages = () => {
+  const dispatch = useAppDispatch();
+  const galleryImages = useAppSelector((state) => state.galleryImages);
+
+  const handleDeleteImage = useCallback((imageId, options = {}) => {
+    const { safeDelete = false } = options;
+    if (safeDelete) {
+      return dispatch(safeDeleteGalleryImage(imageId));
+    }
+    return dispatch(deleteGalleryImage(imageId));
+  }, [dispatch]);
+
+  const handleBulkDeleteImages = useCallback((imageIds) => {
+    return dispatch(bulkDeleteGalleryImages(imageIds));
+  }, [dispatch]);
+
+  const handleSetFeatured = useCallback((imageId) => {
+    return dispatch(setAsFeatured(imageId));
+  }, [dispatch]);
+
+  const handleUpdatePosition = useCallback((imageId, position) => {
+    return dispatch(updateImagePosition({ imageId, position }));
+  }, [dispatch]);
+
+  const handleReorderImages = useCallback((imageableId, imageableType, order) => {
+    return dispatch(reorderImages({ imageableId, imageableType, order }));
+  }, [dispatch]);
+
+  const handleUploadAndAttach = useCallback((files, imageableId, imageableType, additionalData = {}) => {
+    return dispatch(uploadAndAttachImages({ 
+      files, 
+      imageableId, 
+      imageableType, 
+      additionalData 
+    }));
+  }, [dispatch]);
+
+  const handleDetachImage = useCallback((imageId) => {
+    return dispatch(detachImage(imageId));
+  }, [dispatch]);
+
+  const handleRestoreImage = useCallback((imageId) => {
+    return dispatch(restoreImage(imageId));
+  }, [dispatch]);
+
+  const handleClearDeleteError = useCallback(() => {
+    dispatch(clearDeleteError());
+  }, [dispatch]);
+
+  const handleClearBulkDeleteResults = useCallback(() => {
+    dispatch(clearBulkDeleteResults());
+  }, [dispatch]);
+
+  const handleClearFeatureError = useCallback(() => {
+    dispatch(clearFeatureError());
+  }, [dispatch]);
+
+  const handleClearPositionError = useCallback(() => {
+    dispatch(clearPositionError());
+  }, [dispatch]);
+
+  // FIXED: Changed from clearUploadError to clearGalleryUploadError
+  const handleClearGalleryUploadError = useCallback(() => {
+    dispatch(clearGalleryUploadError());
+  }, [dispatch]);
+
+  const handleClearOperationError = useCallback(() => {
+    dispatch(clearOperationError());
+  }, [dispatch]);
+
+  const handleClearSuccessMessage = useCallback(() => {
+    dispatch(clearSuccessMessage());
+  }, [dispatch]);
+
+  const handleClearAllErrors = useCallback(() => {
+    dispatch(clearAllErrors());
+  }, [dispatch]);
+
+  const handleResetGalleryImageState = useCallback(() => {
+    dispatch(resetGalleryImageState());
+  }, [dispatch]);
+
+  return {
+    ...galleryImages,
+    // Delete operations
+    deleteImage: handleDeleteImage,
+    bulkDeleteImages: handleBulkDeleteImages,
+    
+    // Feature operations
+    setFeatured: handleSetFeatured,
+    
+    // Position operations
+    updatePosition: handleUpdatePosition,
+    reorderImages: handleReorderImages,
+    
+    // Upload operations
+    uploadAndAttach: handleUploadAndAttach,
+    
+    // Detach and restore operations
+    detachImage: handleDetachImage,
+    restoreImage: handleRestoreImage,
+    
+    // Clear operations
+    clearDeleteError: handleClearDeleteError,
+    clearBulkDeleteResults: handleClearBulkDeleteResults,
+    clearFeatureError: handleClearFeatureError,
+    clearPositionError: handleClearPositionError,
+    clearUploadError: handleClearGalleryUploadError, // FIXED: Updated this line
+    clearOperationError: handleClearOperationError,
+    clearSuccessMessage: handleClearSuccessMessage,
+    clearAllErrors: handleClearAllErrors,
+    resetState: handleResetGalleryImageState,
+  };
+};
+
+// Upload Hook
+export const useUpload = () => {
+  const dispatch = useAppDispatch();
+  const upload = useAppSelector((state) => state.upload);
+
+  const handleUploadFile = useCallback((file) => {
+    return dispatch(uploadFile(file));
+  }, [dispatch]);
+
+  const handleUploadMultipleFiles = useCallback((files) => {
+    return dispatch(uploadMultipleFiles(files));
+  }, [dispatch]);
+
+  const handleDeleteFile = useCallback((filePath) => {
+    return dispatch(deleteFile(filePath));
+  }, [dispatch]);
+
+  const handleSetSingleUploadProgress = useCallback((progress) => {
+    dispatch(setSingleUploadProgress(progress));
+  }, [dispatch]);
+
+  const handleSetMultipleUploadProgress = useCallback((progress) => {
+    dispatch(setMultipleUploadProgress(progress));
+  }, [dispatch]);
+
+  const handleClearUploadedFile = useCallback(() => {
+    dispatch(clearUploadedFile());
+  }, [dispatch]);
+
+  const handleClearUploadedFiles = useCallback(() => {
+    dispatch(clearUploadedFiles());
+  }, [dispatch]);
+
+  const handleClearSingleUploadError = useCallback(() => {
+    dispatch(clearSingleUploadError());
+  }, [dispatch]);
+
+  const handleClearMultipleUploadError = useCallback(() => {
+    dispatch(clearMultipleUploadError());
+  }, [dispatch]);
+
+  const handleClearFileDeleteError = useCallback(() => {
+    dispatch(clearFileDeleteError());
+  }, [dispatch]);
+
+  const handleClearUploadSuccessMessage = useCallback(() => {
+    dispatch(clearUploadSuccessMessage());
+  }, [dispatch]);
+
+  const handleClearAllUploads = useCallback(() => {
+    dispatch(clearAllUploads());
+  }, [dispatch]);
+
+  const handleAddToRecentUploads = useCallback((uploadData) => {
+    dispatch(addToRecentUploads(uploadData));
+  }, [dispatch]);
+
+  const handleRemoveFromRecentUploads = useCallback((uploadId) => {
+    dispatch(removeFromRecentUploads(uploadId));
+  }, [dispatch]);
+
+  const handleResetUploadState = useCallback(() => {
+    dispatch(resetUploadState());
+  }, [dispatch]);
+
+  return {
+    ...upload,
+    // Upload operations
+    uploadFile: handleUploadFile,
+    uploadMultipleFiles: handleUploadMultipleFiles,
+    deleteFile: handleDeleteFile,
+    
+    // Progress updates
+    setSingleProgress: handleSetSingleUploadProgress,
+    setMultipleProgress: handleSetMultipleUploadProgress,
+    
+    // Clear operations
+    clearUploadedFile: handleClearUploadedFile,
+    clearUploadedFiles: handleClearUploadedFiles,
+    clearSingleError: handleClearSingleUploadError,
+    clearMultipleError: handleClearMultipleUploadError,
+    clearFileDeleteError: handleClearFileDeleteError,
+    clearSuccessMessage: handleClearUploadSuccessMessage,
+    clearAllUploads: handleClearAllUploads,
+    
+    // Recent uploads management
+    addRecentUpload: handleAddToRecentUploads,
+    removeRecentUpload: handleRemoveFromRecentUploads,
+    
+    // Reset
+    resetUploadState: handleResetUploadState,
+  };
+};
+
+// Notification Hook
 export const useNotifications = () => {
   const dispatch = useAppDispatch();
   const notifications = useAppSelector((state) => state.notifications);
@@ -563,7 +810,7 @@ export const useNotifications = () => {
   };
 };
 
-// Chat Hook (for existing chat slice)
+// Chat Hook
 export const useChat = () => {
   const dispatch = useAppDispatch();
   const chat = useAppSelector((state) => state.chat);
@@ -587,6 +834,8 @@ export const useAppState = () => {
   const admin = useAdmin();
   const memberships = useMemberships();
   const fitnessPrograms = useFitnessPrograms();
+  const galleryImages = useGalleryImages();
+  const upload = useUpload();
   const notifications = useNotifications();
   const chat = useChat();
 
@@ -602,6 +851,8 @@ export const useAppState = () => {
     admin,
     memberships,
     fitnessPrograms,
+    galleryImages,
+    upload,
     notifications,
     chat,
   };

@@ -270,8 +270,12 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
       }
       
       // Add gallery images
-      formData.gallery_images.forEach((file) => {
-        formDataToSend.append('gallery_images[]', file);
+      // formData.gallery_images.forEach((file) => {
+      //   formDataToSend.append('gallery_images[]', file);
+      // });
+
+      formData.gallery_images.forEach((file, index) => {
+        formDataToSend.append(`gallery_images_${index + 1}`, file);  // Dynamically appending with index
       });
 
       // Add ingredients as JSON

@@ -312,9 +312,14 @@ const ProductFormModal = ({ isOpen, onClose, product, onSave }) => {
         formDataToSend.append('image', formData.image);
       }
       
-      // Add gallery images
-      formData.gallery_images.forEach((file) => {
-        formDataToSend.append('gallery_images[]', file);
+      // // Add gallery images
+      // formData.gallery_images.forEach((file) => {
+      //   formDataToSend.append('gallery_images[]', file);
+      // });
+
+      // Step 4: Append gallery images with dynamic keys like gallery_images_1, gallery_images_2, etc.
+      formData.gallery_images.forEach((file, index) => {
+        formDataToSend.append(`gallery_images_${index + 1}`, file);  // Dynamically appending with index
       });
 
       // If editing, include the product GUID

@@ -3,9 +3,23 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { io } from 'socket.io-client';
 import { chatAPI } from '../../api/api';
 
-// Async Thunks
+// In chatSlice.js
 export const loadConversations = createAsyncThunk(
   'chat/loadConversations',
+  async (userId, { rejectWithValue }) => {
+    try {
+      // Your API call to load conversations
+      const response = await api.getConversations(userId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response.data);
+    }
+  }
+);
+// Async Thunks
+// FIXED: Changed from loadConversations to getConversations
+export const getConversations = createAsyncThunk(
+  'chat/getConversations',
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await chatAPI.getConversations(params);
@@ -160,9 +174,9 @@ export const getMessageById = createAsyncThunk(
   }
 );
 
-// Renamed to avoid conflict with reducer action
-export const updateMessageAsync = createAsyncThunk(
-  'chat/updateMessageAsync',
+// FIXED: Added updateMessage async thunk (was missing)
+export const updateMessage = createAsyncThunk(
+  'chat/updateMessage',
   async ({ messageId, updateData }, { rejectWithValue }) => {
     try {
       const response = await chatAPI.updateMessage(messageId, updateData);
@@ -184,6 +198,34 @@ export const deleteMessage = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to delete message'
+      );
+    }
+  }
+);
+
+export const addReaction = createAsyncThunk(
+  'chat/addReaction',
+  async ({ messageId, reaction }, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.addReaction(messageId, reaction);
+      return { messageId, reaction, data: response.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to add reaction'
+      );
+    }
+  }
+);
+
+export const removeReaction = createAsyncThunk(
+  'chat/removeReaction',
+  async ({ messageId, reactionId }, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.removeReaction(messageId, reactionId);
+      return { messageId, reactionId, data: response.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to remove reaction'
       );
     }
   }
@@ -217,7 +259,6 @@ export const markAsDelivered = createAsyncThunk(
   }
 );
 
-// NEW: Async thunk for marking messages as read
 export const markMessagesAsRead = createAsyncThunk(
   'chat/markMessagesAsRead',
   async ({ conversationId, messageIds }, { rejectWithValue }) => {
@@ -400,34 +441,6 @@ export const searchGlobal = createAsyncThunk(
   }
 );
 
-export const addReaction = createAsyncThunk(
-  'chat/addReaction',
-  async ({ messageId, reaction }, { rejectWithValue }) => {
-    try {
-      const response = await chatAPI.addReaction(messageId, reaction);
-      return { messageId, reaction, data: response.data };
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 'Failed to add reaction'
-      );
-    }
-  }
-);
-
-export const removeReaction = createAsyncThunk(
-  'chat/removeReaction',
-  async ({ messageId, reactionId }, { rejectWithValue }) => {
-    try {
-      const response = await chatAPI.removeReaction(messageId, reactionId);
-      return { messageId, reactionId, data: response.data };
-    } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 'Failed to remove reaction'
-      );
-    }
-  }
-);
-
 export const startTyping = createAsyncThunk(
   'chat/startTyping',
   async (conversationId, { rejectWithValue }) => {
@@ -493,6 +506,34 @@ export const uploadAttachment = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to upload attachment'
+      );
+    }
+  }
+);
+
+export const getAttachment = createAsyncThunk(
+  'chat/getAttachment',
+  async (attachmentId, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.getAttachment(attachmentId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to get attachment'
+      );
+    }
+  }
+);
+
+export const deleteAttachment = createAsyncThunk(
+  'chat/deleteAttachment',
+  async (attachmentId, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.deleteAttachment(attachmentId);
+      return { attachmentId, data: response.data };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to delete attachment'
       );
     }
   }
@@ -708,6 +749,11 @@ export const clearConversationHistory = createAsyncThunk(
   }
 );
 
+// FIXED: Added clearChatError reducer
+export const clearChatError = () => ({
+  type: 'chat/clearErrors'
+});
+
 // Initial State
 const initialState = {
   conversations: [],
@@ -798,8 +844,8 @@ const chatSlice = createSlice({
     addMessage: (state, action) => {
       state.messages.unshift(action.payload);
     },
-    // Keep this as updateMessage (reducer action)
-    updateMessage: (state, action) => {
+    // FIXED: Renamed reducer action to avoid conflict with async thunk
+    updateMessageReducer: (state, action) => {
       const { messageId, updates } = action.payload;
       const messageIndex = state.messages.findIndex(msg => msg.id === messageId);
       if (messageIndex !== -1) {
@@ -810,7 +856,6 @@ const chatSlice = createSlice({
       state.messages = state.messages.filter(msg => msg.id !== action.payload);
     },
     
-    // NEW: Mark conversation as read (reducer action)
     markConversationAsRead: (state, action) => {
       const conversationId = action.payload;
       
@@ -827,7 +872,6 @@ const chatSlice = createSlice({
       }
     },
     
-    // NEW: Mark specific messages as read (reducer action)
     markMessagesAsReadReducer: (state, action) => {
       const messageIds = action.payload;
       
@@ -911,17 +955,17 @@ const chatSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Load Conversations
-      .addCase(loadConversations.pending, (state) => {
+      // Get Conversations (FIXED: Changed from loadConversations to getConversations)
+      .addCase(getConversations.pending, (state) => {
         state.loading.conversations = true;
         state.error.conversations = null;
       })
-      .addCase(loadConversations.fulfilled, (state, action) => {
+      .addCase(getConversations.fulfilled, (state, action) => {
         state.loading.conversations = false;
         state.conversations = action.payload?.conversations?.data || [];
         state.error.conversations = null;
       })
-      .addCase(loadConversations.rejected, (state, action) => {
+      .addCase(getConversations.rejected, (state, action) => {
         state.loading.conversations = false;
         state.error.conversations = action.payload;
         state.conversations = [];
@@ -978,8 +1022,8 @@ const chatSlice = createSlice({
         state.success.messageSent = false;
       })
       
-      // Update Message Async (the async thunk)
-      .addCase(updateMessageAsync.fulfilled, (state, action) => {
+      // Update Message (FIXED: Using the async thunk)
+      .addCase(updateMessage.fulfilled, (state, action) => {
         const updatedMessage = action.payload.message;
         if (updatedMessage) {
           const messageIndex = state.messages.findIndex(msg => msg.id === updatedMessage.id);
@@ -1205,10 +1249,10 @@ export const {
   clearSearchResults,
   setSelectedConversation,
   addMessage,
-  updateMessage, // This is the reducer action
+  updateMessageReducer, // FIXED: Renamed to avoid conflict
   removeMessage,
-  markConversationAsRead, // ✅ NEW: Added this export
-  markMessagesAsReadReducer, // ✅ NEW: Added this export
+  markConversationAsRead,
+  markMessagesAsReadReducer,
   handleNewMessage,
   handleMessageRead,
   handleConversationUpdate,
