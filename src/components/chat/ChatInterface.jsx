@@ -13,7 +13,8 @@ import {
   markMessagesAsReadReducer,
   markConversationAsRead,
   handleNewMessage,
-  handleMessageRead
+  handleMessageRead,
+  getConversationMessages
 } from '../../store/slices/chatSlice';
 import { removeNotification } from '../../store/slices/notificationSlice';
 import { socketService } from '../../services/socketService';
@@ -111,15 +112,22 @@ const ChatInterface = () => {
     dispatch(selectConversation(conversation));
   };
 
-  const handleSendMessage = (message, attachment, replyTo = null) => {
+  const handleSendMessage = async (message, attachment, replyTo = null) => {
     if (!message.trim() && !attachment) return;
     
-    dispatch(sendMessage({
+    const result = await dispatch(sendMessage({
       message: message.trim(),
       attachment,
       replyTo,
       conversation: selectedConversation
     }));
+    
+    // If message was sent successfully, load fresh messages
+    if (result.payload?.success) {
+      if (selectedConversation?.id) {
+        await dispatch(getConversationMessages({ conversationId: selectedConversation.id }));
+      }
+    }
   };
 
   const handleCreateGroup = (groupData) => {

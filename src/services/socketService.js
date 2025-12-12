@@ -1,5 +1,6 @@
 // services/socketService.js
-import { io } from 'socket.io-client';
+// import { io } from 'socket.io-client';
+import io from 'socket.io-client';
 import { store } from '../store';
 import { setSocket, handleNewMessage, handleMessageRead, handleConversationUpdate } from '../store/slices/chatSlice';
 import { addNotification } from '../store/slices/notificationSlice';
@@ -11,8 +12,10 @@ class SocketService {
   }
 
   initializeSocket() {
-    const token = localStorage.getItem('token');
-    
+    let token = localStorage.getItem('token');
+    if(!token){
+      token = localStorage.getItem('authToken');
+    }
     if (!token) {
       store.dispatch(addNotification({
         type: 'error',

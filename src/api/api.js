@@ -647,6 +647,18 @@ export const chatAPI = {
     return response.data;
   },
 
+  // ✅ NEW: Get all users for chat (for contacts list)
+  getUsers: async (params = {}) => {
+    const response = await axiosInstance.get('/chat/users', { params });
+    return response.data;
+  },
+
+  // ✅ NEW: Get user profile for chat
+  getUserProfile: async (userId) => {
+    const response = await axiosInstance.get(`/chat/users/${userId}`);
+    return response.data;
+  },
+
   // Messages
   getConversationMessages: async (conversationId, params = {}) => {
     const response = await axiosInstance.get(`/chat/conversations/${conversationId}/messages`, { params });

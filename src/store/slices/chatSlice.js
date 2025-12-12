@@ -23,8 +23,12 @@ export const getConversations = createAsyncThunk(
   async (params = {}, { rejectWithValue }) => {
     try {
       const response = await chatAPI.getConversations(params);
-      return response.data;
+      if(response && response.data){
+        return response.data;
+      }
+      return response;
     } catch (error) {
+      console.error('getConversations error:', error);
       return rejectWithValue(
         error.response?.data?.message || 'Failed to load conversations'
       );
@@ -95,7 +99,7 @@ export const selectConversation = createAsyncThunk(
       const response = await chatAPI.getConversationMessages(conversation.id);
       return {
         conversation,
-        messages: response.data.messages?.data || []
+        messages: response.messages?.data || []
       };
     } catch (error) {
       return rejectWithValue(
@@ -110,10 +114,11 @@ export const getConversationMessages = createAsyncThunk(
   async ({ conversationId, params = {} }, { rejectWithValue }) => {
     try {
       const response = await chatAPI.getConversationMessages(conversationId, params);
+      console.log('response ======== ', response);
       return {
         conversationId,
-        messages: response.data.messages?.data || [],
-        pagination: response.data.messages?.pagination
+        messages: response.messages?.data || [],
+        pagination: response.messages?.pagination
       };
     } catch (error) {
       return rejectWithValue(
@@ -123,17 +128,40 @@ export const getConversationMessages = createAsyncThunk(
   }
 );
 
+
 export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
-  async ({ message, attachment = null, replyTo = null, conversation }, { rejectWithValue }) => {
+  async ({ message, attachment = null, replyTo = null, conversation }, { rejectWithValue, getState }) => {
     try {
+      const state = getState();
+      const currentUserId = state.auth.user?.id;
+      
+      if (!currentUserId) {
+        throw new Error('User not authenticated');
+      }
+      
       let response;
+      
+      // Determine if it's a private or group conversation
+      const isPrivate = conversation.type === 'private';
       
       if (attachment) {
         const formData = new FormData();
-        if (conversation?.id) {
-          formData.append('conversation_id', conversation.id);
+        
+        if (isPrivate) {
+          // For private conversations, we need to send the other user's ID
+          const otherUser = conversation.users.find(user => user.id !== currentUserId);
+          if (!otherUser) {
+            throw new Error('No other user found in private conversation');
+          }
+          formData.append('user_id', otherUser.id);
+        } else {
+          // For group conversations, send the conversation ID
+          if (conversation?.id) {
+            formData.append('conversation_id', conversation.id);
+          }
         }
+        
         formData.append('message', message);
         formData.append('type', 'file');
         formData.append('attachment', attachment);
@@ -143,19 +171,44 @@ export const sendMessage = createAsyncThunk(
         response = await chatAPI.sendMessageWithAttachment(formData);
       } else {
         const messageData = {
-          conversation_id: conversation?.id,
           message,
           type: 'text',
           reply_to: replyTo
         };
+        
+        if (isPrivate) {
+          const otherUser = conversation.users.find(user => user.id !== currentUserId);
+          if (!otherUser) {
+            throw new Error('No other user found in private conversation');
+          }
+          messageData.user_id = otherUser.id;
+        } else {
+          if (conversation?.id) {
+            messageData.conversation_id = conversation.id;
+          }
+        }
+        
         response = await chatAPI.sendMessage(messageData);
       }
 
-      return response.data;
+      // Check if the server returned an error even with a 200 status
+      if (response && response.data && response.data.success === false) {
+        throw new Error(response.data.message || 'Failed to send message');
+      }
+
+      return response;
     } catch (error) {
-      return rejectWithValue(
-        error.response?.data?.message || 'Failed to send message'
-      );
+      let errorMessage = 'Failed to send message';
+      try {
+        if (error && typeof error === 'object') {
+          errorMessage = error.response?.data?.message || error.message || errorMessage;
+        } else if (typeof error === 'string') {
+          errorMessage = error;
+        }
+      } catch (formatError) {
+        console.error('Error formatting error message:', formatError);
+      }
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -404,7 +457,7 @@ export const searchUsers = createAsyncThunk(
   async ({ searchTerm, params = {} }, { rejectWithValue }) => {
     try {
       const response = await chatAPI.searchUsers(searchTerm, params);
-      return response.data;
+      return response;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to search users'
@@ -749,6 +802,21 @@ export const clearConversationHistory = createAsyncThunk(
   }
 );
 
+export const getUsers = createAsyncThunk(
+  'chat/getUsers',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await chatAPI.getUsers(params);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to load users'
+      );
+    }
+  }
+);
+
+
 // FIXED: Added clearChatError reducer
 export const clearChatError = () => ({
   type: 'chat/clearErrors'
@@ -999,9 +1067,9 @@ const chatSlice = createSlice({
         state.loading.sending = false;
         state.error.sending = null;
         state.success.messageSent = true;
-        
+        console.log('action =========== ', action.payload);
         // Update conversation last message
-        if (state.selectedConversation && action.payload.message) {
+        if (state.selectedConversation && action.payload && action.payload.message) {
           const updatedConversation = {
             ...state.selectedConversation,
             last_message: action.payload.message,
@@ -1127,6 +1195,7 @@ const chatSlice = createSlice({
       })
       .addCase(searchUsers.fulfilled, (state, action) => {
         state.loading.searching = false;
+        console.log('action.payload =========== ', action.payload);
         state.searchedUsers = action.payload.users || [];
         state.searchResults.users = action.payload.users || [];
         state.error.searching = null;

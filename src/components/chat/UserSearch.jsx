@@ -8,27 +8,37 @@ const UserSearch = ({ onClose, onSelectUser }) => {
     const [error, setError] = useState(null);
     const [hasSearched, setHasSearched] = useState(false);
     
-    // Use ref to track the current search term to avoid race conditions
     const currentSearchTermRef = useRef('');
+    const searchTimeoutRef = useRef(null);
 
     useEffect(() => {
         const term = searchTerm.trim();
         currentSearchTermRef.current = term;
         
+        // Clear previous timeout
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+        
         if (term) {
             setHasSearched(true);
-            const delaySearch = setTimeout(() => {
+            searchTimeoutRef.current = setTimeout(() => {
                 // Only search if the term hasn't changed during the delay
                 if (currentSearchTermRef.current === term) {
                     searchUsers(term);
                 }
-            }, 500); // Increased debounce time
-            return () => clearTimeout(delaySearch);
+            }, 500);
         } else {
             setUsers([]);
             setError(null);
             setHasSearched(false);
         }
+        
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
     }, [searchTerm]);
 
     const searchUsers = async (term) => {
@@ -36,6 +46,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
             setLoading(true);
             setError(null);
             
+            // Use chatAPI searchUsers method if available, otherwise use direct API call
             const response = await axiosInstance.get(`/chat/search-users?search=${encodeURIComponent(term)}`);
             
             // Check if this response is still relevant
@@ -44,9 +55,10 @@ const UserSearch = ({ onClose, onSelectUser }) => {
             }
             
             if (response.data.success) {
-                setUsers(response.data.users || []);
+                const usersData = response.data.users || response.data.data || [];
+                setUsers(usersData);
             } else {
-                setError('Failed to search users');
+                setError(response.data.message || 'Failed to search users');
                 setUsers([]);
             }
         } catch (error) {
@@ -63,8 +75,18 @@ const UserSearch = ({ onClose, onSelectUser }) => {
             } else if (error.response?.status === 403) {
                 setError('You do not have permission to search users');
             } else if (error.response?.status === 404) {
-                setError('Search endpoint not found');
-            } else if (error.isNetworkError) {
+                // Try alternative endpoint
+                try {
+                    const altResponse = await axiosInstance.get(`/api/users/search?q=${encodeURIComponent(term)}`);
+                    if (altResponse.data.success) {
+                        setUsers(altResponse.data.data || []);
+                        setError(null);
+                        return;
+                    }
+                } catch (altError) {
+                    setError('Search endpoint not found');
+                }
+            } else if (error.message === 'Network Error') {
                 setError('Network error. Please check your connection');
             } else {
                 setError(error.response?.data?.message || 'Failed to search users');
@@ -88,6 +110,9 @@ const UserSearch = ({ onClose, onSelectUser }) => {
         if (e.key === 'Escape') {
             onClose();
         }
+        if (e.key === 'Enter' && users.length === 1) {
+            handleUserSelect(users[0]);
+        }
     };
 
     const handleInputChange = (e) => {
@@ -100,7 +125,6 @@ const UserSearch = ({ onClose, onSelectUser }) => {
         }
     };
 
-    // Determine what to show in the results area
     const renderResultsContent = () => {
         if (loading) {
             return (
@@ -135,16 +159,16 @@ const UserSearch = ({ onClose, onSelectUser }) => {
                     <div className="user-avatar">
                         <img 
                             src={user.avatar || '/default-avatar.png'} 
-                            alt={user.name}
+                            alt={user.name || user.email}
                             onError={(e) => {
                                 e.target.src = '/default-avatar.png';
                             }}
                         />
                     </div>
                     <div className="user-info">
-                        <h4 className="user-name">{user.name}</h4>
-                        <span className="user-email">{user.email}</span>
-                        {user.isOnline && <span className="online-indicator">Online</span>}
+                        <h4 className="user-name">{user.name || user.email}</h4>
+                        {user.name && user.email && <span className="user-email">{user.email}</span>}
+                        {user.isOnline && <span className="online-indicator">• Online</span>}
                     </div>
                 </div>
             ));
@@ -163,6 +187,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
             return (
                 <div className="search-prompt">
                     <p>Enter a name or email to search for users</p>
+                    <small>Start typing to find users to chat with</small>
                 </div>
             );
         }
@@ -172,7 +197,7 @@ const UserSearch = ({ onClose, onSelectUser }) => {
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content user-search-modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3>New Chat</h3>
                     <button 
@@ -186,15 +211,18 @@ const UserSearch = ({ onClose, onSelectUser }) => {
 
                 <div className="modal-body">
                     <div className="form-group">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyPress}
-                            placeholder="Search users by name or email..."
-                            autoFocus
-                            disabled={loading}
-                        />
+                        <div className="search-input-wrapper">
+                            <span className="search-icon">🔍</span>
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={handleInputChange}
+                                onKeyDown={handleKeyPress}
+                                placeholder="Search users by name or email..."
+                                autoFocus
+                                disabled={loading}
+                            />
+                        </div>
                     </div>
 
                     <div className="user-search-results">

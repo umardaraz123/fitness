@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -35,6 +35,8 @@ import WorkoutPlans from './components/WorkoutPlans';
 import PaymentDetails from './components/MyMemberships';
 import EditProfile from './components/EditProfile';
 import Logout from './components/Logout';
+import { socketService } from './services/socketService';
+import ContactsPage from './pages/admin/ContactsPage';
 
 function AppContent() {
   const location = useLocation();
@@ -52,6 +54,10 @@ function AppContent() {
     location.pathname.startsWith(path + '?') || 
     location.pathname.startsWith(path + '#')
   );
+
+  useEffect(() => {
+    socketService.initializeSocket();
+  }, []);
 
   return (
     <>
@@ -87,6 +93,7 @@ function AppContent() {
         <Route path="/admin/*" element={<AdminLayout />}> 
           <Route index element={<AdminDashboard />} />
           <Route path="messages" element={<Messages />} />
+          <Route path="contacts" element={<ContactsPage />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="workouts" element={<AdminWorkouts />} />

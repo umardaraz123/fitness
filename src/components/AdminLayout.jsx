@@ -87,6 +87,16 @@ const AdminLayout = () => {
                   <span className="nav-text">Messages</span>
                 </Link>
               </li>
+               {/* New Contacts/Chat Tab */}
+              <li className="nav-item">
+                <Link 
+                  to="/admin/contacts" 
+                  className={`nav-link ${location.pathname.startsWith('/admin/contacts') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">💬</span>
+                  <span className="nav-text">Contacts & Chats</span>
+                </Link>
+              </li>
             </ul>
           </div>
           
