@@ -196,7 +196,14 @@ const CategoryFormModal = ({ isOpen, onClose, category, categories, onSave }) =>
               className="btn-submit"
               disabled={loading}
             >
-              {loading ? 'Saving...' : category ? 'Update Category' : 'Create Category'}
+              {loading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  {category ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                category ? 'Update Category' : 'Create Category'
+              )}
             </button>
           </div>
         </form>

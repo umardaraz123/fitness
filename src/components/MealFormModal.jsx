@@ -499,7 +499,7 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="is_featured" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <label htmlFor="is_featured" className="checkbox-label">
                 <input
                   type="checkbox"
                   id="is_featured"
@@ -507,14 +507,13 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
                   checked={formData.is_featured === 1}
                   onChange={handleChange}
                   disabled={loading}
-                  style={{ cursor: 'pointer' }}
                 />
-                Featured Meal
+                <span>Featured Meal</span>
               </label>
             </div>
 
             <div className="form-group">
-              <label htmlFor="is_best_selling" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <label htmlFor="is_best_selling" className="checkbox-label">
                 <input
                   type="checkbox"
                   id="is_best_selling"
@@ -522,9 +521,8 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
                   checked={formData.is_best_selling === 1}
                   onChange={handleChange}
                   disabled={loading}
-                  style={{ cursor: 'pointer' }}
                 />
-                Best Selling
+                <span>Best Selling</span>
               </label>
             </div>
 
@@ -579,7 +577,7 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
 
             <div className="form-group full-width">
               <label htmlFor="ingredient-input">Add Ingredients</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="array-input-group">
                 <input
                   type="text"
                   id="ingredient-input"
@@ -588,57 +586,26 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
                   onKeyPress={handleIngredientKeyPress}
                   placeholder="Type ingredient and press Enter"
                   disabled={loading}
-                  style={{ flex: 1 }}
                 />
                 <button
                   type="button"
                   onClick={handleAddIngredient}
-                  className="btn-icon"
+                  className="add-btn"
                   disabled={loading || !ingredientInput.trim()}
-                  style={{
-                    padding: '8px 16px',
-                    background: 'var(--accent-color)',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
                 >
                   <Plus size={18} />
                   Add
                 </button>
               </div>
               {formData.ingredients.length > 0 && (
-                <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div className="tags-container">
                   {formData.ingredients.map((ingredient, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '6px 12px',
-                        background: '#2c2c2c',
-                        borderRadius: '6px',
-                        fontSize: '14px'
-                      }}
-                    >
+                    <div key={index} className="tag-chip">
                       <span>{ingredient}</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveIngredient(index)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ff4444',
-                          cursor: 'pointer',
-                          padding: '0',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
+                        className="remove-tag"
                       >
                         <X size={16} />
                       </button>
@@ -664,17 +631,11 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
                 disabled={loading}
               />
               {imagePreview && (
-                <div style={{ marginTop: '10px' }}>
+                <div className="image-preview-container">
                   <img 
                     src={imagePreview} 
                     alt="Main Preview" 
-                    style={{ 
-                      width: '150px', 
-                      height: '150px', 
-                      objectFit: 'cover', 
-                      borderRadius: '8px',
-                      border: '1px solid #3a3a3a'
-                    }} 
+                    className="image-preview"
                   />
                 </div>
               )}
@@ -692,45 +653,18 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
                 disabled={loading}
               />
               {galleryPreviews.length > 0 && (
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '12px', 
-                  marginTop: '12px', 
-                  flexWrap: 'wrap' 
-                }}>
+                <div className="gallery-previews">
                   {galleryPreviews.map((preview, index) => (
-                    <div key={index} style={{ position: 'relative' }}>
+                    <div key={index} className="gallery-preview-item">
                       <img 
                         src={preview} 
                         alt={`Preview ${index + 1}`} 
-                        style={{ 
-                          width: '100px', 
-                          height: '100px', 
-                          objectFit: 'cover', 
-                          borderRadius: '8px',
-                          border: '1px solid #3a3a3a'
-                        }} 
+                        className="gallery-preview"
                       />
                       <button
                         type="button"
                         onClick={() => removeGalleryImage(index)}
-                        style={{
-                          position: 'absolute',
-                          top: '-8px',
-                          right: '-8px',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          background: '#ff4444',
-                          border: 'none',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '14px',
-                          fontWeight: 'bold'
-                        }}
+                        className="remove-image-btn"
                       >
                         ×
                       </button>
@@ -755,7 +689,14 @@ const MealFormModal = ({ isOpen, onClose, meal, onSave }) => {
               className="btn-submit"
               disabled={loading}
             >
-              {loading ? 'Saving...' : meal ? 'Update Meal' : 'Create Meal'}
+              {loading ? (
+                <>
+                  <span className="loading-spinner"></span>
+                  {meal ? 'Updating...' : 'Creating...'}
+                </>
+              ) : (
+                meal ? 'Update Meal' : 'Create Meal'
+              )}
             </button>
           </div>
         </form>

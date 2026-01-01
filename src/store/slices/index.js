@@ -152,84 +152,84 @@ export {
   createConversation,
   updateConversation,
   deleteConversation,
-  
+
   // Messages
   getConversationMessages,
   sendMessage,
   getMessageById,
   updateMessage,
   deleteMessage,
-  
+
   // Message Reactions
   addReaction,
   removeReaction,
-  
+
   // Message Status
   markAsRead as markMessageAsRead,
   markAsDelivered,
-  
+
   // Groups
   createGroup,
   updateGroup,
   getGroupById,
   deleteGroup,
-  
+
   // Group Members
   addGroupMember,
   removeGroupMember,
   updateGroupMember,
   getGroupMembers,
   leaveGroup,
-  
+
   // Search
   searchUsers,
   searchMessages,
   searchGlobal,
-  
+
   // Typing Indicators
   startTyping,
   stopTyping,
-  
+
   // Presence
   updatePresence,
   getOnlineUsers,
-  
+
   // Attachments
   uploadAttachment,
   getAttachment,
   deleteAttachment,
-  
+
   // Message Forwarding
   forwardMessage,
-  
+
   // Message Replies
   getMessageThread,
-  
+
   // Pinned Messages
   pinMessage,
   unpinMessage,
   getPinnedMessages,
-  
+
   // Archived Conversations
   getArchivedConversations,
   archiveConversation,
   unarchiveConversation,
-  
+
   // Blocking
   blockUser,
   unblockUser,
   getBlockedUsers,
-  
+
   // Chat Settings
   getChatSettings,
   updateChatSettings,
-  
+
   // Statistics
   getChatStatistics,
-  
+
   // Clear History
   clearConversationHistory,
-  
+
   // Error Clearing
   clearChatError,
   resetChatState,
@@ -270,3 +270,19 @@ export { default as galleryImageReducer } from './galleryImageSlice';
 export { default as notificationReducer } from './notificationSlice';
 export { default as chatReducer } from './chatSlice';
 export { default as uploadReducer } from './uploadSlice';
+
+// Partner exports
+export {
+  getPartners,
+  getPartnerById,
+  getActivePartners,
+  getPartnerWithGallery,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  clearPartnerError,
+  clearPartnerSuccess,
+  clearCurrentPartner,
+  resetPartnerState,
+} from './partnerSlice';
+export { default as partnerReducer } from './partnerSlice';

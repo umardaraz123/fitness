@@ -948,12 +948,12 @@ export const galleryImageAPI = {
   // Create multiple gallery images
   createMultipleGalleryImages: async (files, imageableData = {}) => {
     const formData = new FormData();
-    
+
     // Add multiple files
     files.forEach(file => {
       formData.append('gallery_images[]', file);
     });
-    
+
     // Add imageable data
     Object.keys(imageableData).forEach(key => {
       formData.append(key, imageableData[key]);
@@ -991,8 +991,8 @@ export const galleryImageAPI = {
 
   // Bulk delete multiple gallery images
   bulkDeleteGalleryImages: async (imageIds) => {
-    const response = await axiosInstance.delete('/auth/gallery-images/bulk/delete', { 
-      data: { ids: imageIds } 
+    const response = await axiosInstance.delete('/auth/gallery-images/bulk/delete', {
+      data: { ids: imageIds }
     });
     return response.data;
   },
@@ -1046,16 +1046,16 @@ export const galleryImageAPI = {
   // Upload and attach images to model
   uploadAndAttachImages: async (files, imageableId, imageableType, additionalData = {}) => {
     const formData = new FormData();
-    
+
     // Add multiple files
     files.forEach(file => {
       formData.append('gallery_images[]', file);
     });
-    
+
     // Add imageable data
     formData.append('imageable_id', imageableId);
     formData.append('imageable_type', imageableType);
-    
+
     // Add additional data
     Object.keys(additionalData).forEach(key => {
       formData.append(key, additionalData[key]);
@@ -1099,6 +1099,126 @@ export const galleryImageAPI = {
   }
 };
 
+// Partner APIs
+export const partnerAPI = {
+  // Get all partners with pagination and search (admin)
+  getPartners: async (params = {}) => {
+    const response = await axiosInstance.get('/partners', { params });
+    return response.data;
+  },
+
+  // Get active partners (public)
+  getActivePartners: async (params = {}) => {
+    const response = await axiosInstance.get('/partners/active', { params });
+    return response.data;
+  },
+
+  // Get partner by ID (admin)
+  getPartnerById: async (id) => {
+    const response = await axiosInstance.get(`/partners/${id}`);
+    return response.data;
+  },
+
+  // Get partner by ID with gallery images (public)
+  getPartnerWithGallery: async (id) => {
+    const response = await axiosInstance.get(`/partners/${id}`, {
+      params: { with: 'galleryImages' }
+    });
+    return response.data;
+  },
+
+  // Create partner
+  createPartner: async (data) => {
+    const formData = new FormData();
+
+    // Append basic fields
+    if (data.name) formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.address) formData.append('address', data.address);
+    if (data.phone) formData.append('phone', data.phone);
+    if (data.opening_hours) formData.append('opening_hours', data.opening_hours);
+    if (data.closing_hours) formData.append('closing_hours', data.closing_hours);
+
+    // Append working_days as array
+    if (data.working_days && Array.isArray(data.working_days)) {
+      data.working_days.forEach((day) => {
+        formData.append('working_days[]', day);
+      });
+    }
+
+    // Append main image
+    if (data.image && data.image instanceof File) {
+      formData.append('image', data.image);
+    }
+
+    // Append gallery images
+    if (data.gallery_images && data.gallery_images.length > 0) {
+      data.gallery_images.forEach((file) => {
+        if (file instanceof File) {
+          formData.append('gallery_images[]', file);
+        }
+      });
+    }
+
+    const response = await axiosInstance.post('/partners', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Update partner (using POST method as per API spec)
+  updatePartner: async (id, data) => {
+    const formData = new FormData();
+
+    // Add _method for Laravel to treat as PUT/PATCH
+    formData.append('_method', 'POST');
+
+    // Append basic fields
+    if (data.name) formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.address) formData.append('address', data.address);
+    if (data.phone) formData.append('phone', data.phone);
+    if (data.opening_hours) formData.append('opening_hours', data.opening_hours);
+    if (data.closing_hours) formData.append('closing_hours', data.closing_hours);
+
+    // Append working_days as array
+    if (data.working_days && Array.isArray(data.working_days)) {
+      data.working_days.forEach((day) => {
+        formData.append('working_days[]', day);
+      });
+    }
+
+    // Append main image if new file
+    if (data.image && data.image instanceof File) {
+      formData.append('image', data.image);
+    }
+
+    // Append gallery images if new files
+    if (data.gallery_images && data.gallery_images.length > 0) {
+      data.gallery_images.forEach((file) => {
+        if (file instanceof File) {
+          formData.append('gallery_images[]', file);
+        }
+      });
+    }
+
+    const response = await axiosInstance.post(`/partners/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Delete partner
+  deletePartner: async (id) => {
+    const response = await axiosInstance.delete(`/partners/${id}`);
+    return response.data;
+  },
+};
+
 // Export all APIs
 export default {
   auth: authAPI,
@@ -1115,5 +1235,6 @@ export default {
   upload: uploadAPI,
   notification: notificationAPI,
   chat: chatAPI,
-  galleryImage: galleryImageAPI
+  galleryImage: galleryImageAPI,
+  partner: partnerAPI
 };

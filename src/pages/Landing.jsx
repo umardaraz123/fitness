@@ -57,30 +57,31 @@ import CartImg from "../assets/images/cart1.svg";
 import Slider from "react-slick";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import PartnersSlider from "../components/PartnersSlider";
 
 const Landing = () => {
   const navigate = useNavigate();
-  
+
   // Redux hooks
-  const { 
-    products, 
-    isLoading: loadingProducts, 
+  const {
+    products,
+    isLoading: loadingProducts,
     getProducts,
-    clearError: clearProductsError 
+    clearError: clearProductsError
   } = useProducts();
-  
-  const { 
-    meals, 
-    isLoading: loadingMeals, 
+
+  const {
+    meals,
+    isLoading: loadingMeals,
     getMeals,
-    clearError: clearMealsError 
+    clearError: clearMealsError
   } = useMeals();
-  
-  const { 
-    plans: fitnessPlans, 
-    isLoading: loadingFitnessPlans, 
+
+  const {
+    plans: fitnessPlans,
+    isLoading: loadingFitnessPlans,
     getPlans,
-    clearError: clearPlansError 
+    clearError: clearPlansError
   } = usePlans();
 
   const [featuredPlans, setFeaturedPlans] = useState([]);
@@ -140,7 +141,7 @@ const Landing = () => {
         page: 1,
         per_page: 10
       });
-      
+
       if (response.payload?.data?.data || response.payload?.data) {
         const plansData = response.payload.data.data || response.payload.data || [];
         setFeaturedPlans(Array.isArray(plansData) ? plansData : []);
@@ -218,12 +219,12 @@ const Landing = () => {
   // Products: { products: [], adminProducts: [], ... }
   // Meals: { meals: [], ... }
   // Plans: { plans: [], ... } - but fitnessPlans is actually the whole slice
-  
+
   // Debug: Log to see what we're getting
   console.log('Products state:', products);
   console.log('Meals state:', meals);
   console.log('FitnessPlans state:', fitnessPlans);
-  
+
   const productsData = Array.isArray(products) ? products : [];
   const mealsData = Array.isArray(meals) ? meals : [];
   const fitnessPlansData = Array.isArray(fitnessPlans) ? fitnessPlans : [];
@@ -276,7 +277,7 @@ const Landing = () => {
           </div>
         </div>
       </div>
-      
+
       {/* All Products  */}
       <div className="products-wrapper bg-gray">
         <div className="container">
@@ -286,7 +287,7 @@ const Landing = () => {
               View All
             </a>
           </div>
-          
+
           {loadingProducts ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <div className="loader"></div>
@@ -299,8 +300,8 @@ const Landing = () => {
                   <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleProductClick(product.guid)}>
                     <div className="image">
                       {getProductImage(product) ? (
-                        <img 
-                          src={getProductImage(product)} 
+                        <img
+                          src={getProductImage(product)}
                           alt={product.name}
                           onError={(e) => {
                             console.error('Image failed to load:', getProductImage(product));
@@ -359,7 +360,7 @@ const Landing = () => {
               View All
             </a>
           </div>
-          
+
           {loadingFitnessPlans ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <div className="loader"></div>
@@ -374,9 +375,9 @@ const Landing = () => {
               {/* Large card on the left - takes full height */}
               {fitnessPlansData[0] && (
                 <div className="col-12 col-lg-6 mb-4">
-                  <div 
+                  <div
                     className="large-card card-wrapper"
-                    style={{ 
+                    style={{
                       cursor: 'pointer',
                       backgroundImage: getPlanImage(fitnessPlansData[0]) ? `url(${getPlanImage(fitnessPlansData[0])})` : 'none',
                       backgroundSize: 'cover',
@@ -404,15 +405,15 @@ const Landing = () => {
                   </div>
                 </div>
               )}
-              
+
               {/* 4 small cards on the right - 2x2 grid */}
               <div className="col-12 col-lg-6">
                 <div className="row">
                   {fitnessPlansData.slice(1, 5).map((plan) => (
                     <div className="col-6 mb-4" key={plan.id}>
-                      <div 
+                      <div
                         className="small-card card-wrapper"
-                        style={{ 
+                        style={{
                           cursor: 'pointer',
                           backgroundImage: getPlanImage(plan) ? `url(${getPlanImage(plan)})` : 'none',
                           backgroundSize: 'cover',
@@ -441,14 +442,14 @@ const Landing = () => {
               </div>
             </div>
           )}
-          
+
           <div className="d-flex justify-content-between align-items-center mb-24">
             <h3 className="title-medium">Meals</h3>
             <a href="/meals" className="view-all" onClick={(e) => { e.preventDefault(); navigate('/meals'); }}>
               View All
             </a>
           </div>
-          
+
           {loadingMeals ? (
             <div style={{ textAlign: 'center', padding: '60px 0' }}>
               <div className="loader"></div>
@@ -461,8 +462,8 @@ const Landing = () => {
                   <div className="product-card" style={{ cursor: 'pointer' }} onClick={() => handleMealClick(meal.guid)}>
                     <div className="image lg">
                       {getMealImage(meal) ? (
-                        <img 
-                          src={getMealImage(meal)} 
+                        <img
+                          src={getMealImage(meal)}
                           alt={meal.name}
                           onError={(e) => {
                             console.error('Image failed to load:', getMealImage(meal));
@@ -544,15 +545,15 @@ const Landing = () => {
             >
               {featuredPlans.map((plan) => (
                 <div key={plan.id}>
-                  <div 
-                    className="featured-card" 
+                  <div
+                    className="featured-card"
                     style={{ cursor: 'pointer' }}
                     onClick={() => handlePlanClick(plan.guid)}
                   >
                     <div className="image">
                       {getPlanImage(plan) ? (
-                        <img 
-                          src={getPlanImage(plan)} 
+                        <img
+                          src={getPlanImage(plan)}
                           alt={plan.title}
                           onError={(e) => {
                             console.error('Image failed to load:', getPlanImage(plan));
@@ -594,7 +595,7 @@ const Landing = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Why Choose Us */}
       <div className="padding-40 bg-gray why-choose-us">
         <div className="container">
@@ -622,7 +623,7 @@ const Landing = () => {
               </div>
               <div className="list-item">
                 <div className="label">
-                 Train Smarter. Get Stronger.
+                  Train Smarter. Get Stronger.
                 </div>
                 <p className="text">
                   Lorem ipsum dolor sit amet consectetur. Habitasse lacus a sit ultrices sem nulla donec pulvinar.
@@ -637,7 +638,7 @@ const Landing = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Testimonials */}
       <div className="padding-40 dark-bg">
         <div className="container">
@@ -701,6 +702,9 @@ const Landing = () => {
           </div>
         </div>
       </div>
+
+      {/* Partners Section */}
+      <PartnersSlider />
     </div>
   );
 };

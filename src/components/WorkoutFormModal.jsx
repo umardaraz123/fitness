@@ -228,17 +228,11 @@ const WorkoutFormModal = ({ isOpen, onClose, workout, categories, onSave }) => {
                 disabled={loading}
               />
               {imagePreview && (
-                <div style={{ marginTop: '10px' }}>
+                <div className="image-preview-container">
                   <img 
                     src={imagePreview} 
                     alt="Preview" 
-                    style={{ 
-                      width: '150px', 
-                      height: '150px', 
-                      objectFit: 'cover', 
-                      borderRadius: '8px',
-                      border: '1px solid #3a3a3a'
-                    }} 
+                    className="image-preview"
                   />
                 </div>
               )}
@@ -261,7 +255,14 @@ const WorkoutFormModal = ({ isOpen, onClose, workout, categories, onSave }) => {
             className="btn-submit"
             disabled={loading}
           >
-            {loading ? 'Saving...' : workout ? 'Update Workout' : 'Create Workout'}
+            {loading ? (
+              <>
+                <span className="loading-spinner"></span>
+                {workout ? 'Updating...' : 'Creating...'}
+              </>
+            ) : (
+              workout ? 'Update Workout' : 'Create Workout'
+            )}
           </button>
         </div>
       </div>

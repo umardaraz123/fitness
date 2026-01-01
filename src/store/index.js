@@ -13,6 +13,7 @@ import orderReducer from './slices/orderSlice';
 import adminReducer from './slices/adminSlice';
 import membershipReducer from './slices/membershipSlice';
 import fitnessProgramReducer from './slices/fitnessProgramSlice';
+import partnerReducer from './slices/partnerSlice';
 
 export const store = configureStore({
   reducer: {
@@ -27,6 +28,7 @@ export const store = configureStore({
     admin: adminReducer,
     memberships: membershipReducer,
     fitnessPrograms: fitnessProgramReducer,
+    partners: partnerReducer,
     chat: chatReducer,
     notifications: notificationReducer,
   },

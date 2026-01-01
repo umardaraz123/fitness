@@ -7,20 +7,20 @@ const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
   const handleLogout = async () => {
     try {
       // Dispatch logout action
       await dispatch(logout()).unwrap();
-      
+
       // Redirect to login page
       navigate('/login');
-      
+
       // Optional: Show success message
       console.log('Logout successful');
-      
+
     } catch (error) {
       console.error('Logout failed:', error);
       // Even if API call fails, we can still redirect to login
@@ -46,9 +46,9 @@ const AdminLayout = () => {
         {/* User Profile */}
         <div className="sidebar-profile">
           <div className="profile-avatar">
-            <img 
-              src={user?.avatar || "/src/assets/images/user1.jpg"} 
-              alt={user?.name || "Admin User"} 
+            <img
+              src={user?.avatar || "/src/assets/images/user1.jpg"}
+              alt={user?.name || "Admin User"}
               onError={(e) => {
                 e.target.src = "/default-avatar.png";
               }}
@@ -70,8 +70,8 @@ const AdminLayout = () => {
             <span className="nav-label">MAIN</span>
             <ul className="nav-list">
               <li className="nav-item">
-                <Link 
-                  to="/admin" 
+                <Link
+                  to="/admin"
                   className={`nav-link ${location.pathname === '/admin' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">👥</span>
@@ -79,18 +79,18 @@ const AdminLayout = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  to="/admin/messages" 
+                <Link
+                  to="/admin/messages"
                   className={`nav-link ${location.pathname === '/admin/messages' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">💬</span>
                   <span className="nav-text">Messages</span>
                 </Link>
               </li>
-               {/* New Contacts/Chat Tab */}
+              {/* New Contacts/Chat Tab */}
               <li className="nav-item">
-                <Link 
-                  to="/admin/contacts" 
+                <Link
+                  to="/admin/contacts"
                   className={`nav-link ${location.pathname.startsWith('/admin/contacts') ? 'active' : ''}`}
                 >
                   <span className="nav-icon">💬</span>
@@ -99,13 +99,13 @@ const AdminLayout = () => {
               </li>
             </ul>
           </div>
-          
+
           <div className="nav-section">
             <span className="nav-label">E-COMMERCE</span>
             <ul className="nav-list">
               <li className="nav-item">
-                <Link 
-                  to="/admin/products" 
+                <Link
+                  to="/admin/products"
                   className={`nav-link ${location.pathname === '/admin/products' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">📦</span>
@@ -113,8 +113,8 @@ const AdminLayout = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  to="/admin/categories" 
+                <Link
+                  to="/admin/categories"
                   className={`nav-link ${location.pathname === '/admin/categories' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">📁</span>
@@ -122,8 +122,8 @@ const AdminLayout = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  to="/admin/workouts" 
+                <Link
+                  to="/admin/workouts"
                   className={`nav-link ${location.pathname === '/admin/workouts' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">💪</span>
@@ -131,8 +131,8 @@ const AdminLayout = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  to="/admin/meals" 
+                <Link
+                  to="/admin/meals"
                   className={`nav-link ${location.pathname === '/admin/meals' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">🍽️</span>
@@ -140,12 +140,21 @@ const AdminLayout = () => {
                 </Link>
               </li>
               <li className="nav-item">
-                <Link 
-                  to="/admin/plans" 
+                <Link
+                  to="/admin/plans"
                   className={`nav-link ${location.pathname === '/admin/plans' ? 'active' : ''}`}
                 >
                   <span className="nav-icon">📋</span>
                   <span className="nav-text">Plans</span>
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link
+                  to="/admin/partners"
+                  className={`nav-link ${location.pathname === '/admin/partners' ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">🏢</span>
+                  <span className="nav-text">Partners</span>
                 </Link>
               </li>
             </ul>
@@ -154,7 +163,7 @@ const AdminLayout = () => {
 
         {/* Logout */}
         <div className="sidebar-footer">
-          <button 
+          <button
             className="logout-btn"
             onClick={confirmLogout}
           >

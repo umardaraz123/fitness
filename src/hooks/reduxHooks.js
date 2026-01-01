@@ -14,7 +14,7 @@ import {
   clearAuthMessage,
   setCredentials,
   resetOtpState,
-  
+
   // User Actions
   getProfile,
   updateProfile,
@@ -23,7 +23,7 @@ import {
   getMealPlans,
   getMemberships,
   clearUserError,
-  
+
   // Product Actions
   getProducts,
   getProductById,
@@ -34,13 +34,13 @@ import {
   getCategories,
   clearProductError,
   clearCurrentProduct,
-  
+
   // Workout Actions
   getWorkouts,
   getWorkoutById,
   createWorkout,
   clearWorkoutError,
-  
+
   // Meal Actions
   getMeals,
   getMealById,
@@ -48,7 +48,7 @@ import {
   updateMeal,
   deleteMeal,
   clearMealError,
-  
+
   // Plan Actions
   getPlans,
   getPlanById,
@@ -56,7 +56,7 @@ import {
   updatePlan,
   deletePlan,
   clearPlanError,
-  
+
   // Cart Actions
   getCart,
   addToCart,
@@ -64,13 +64,13 @@ import {
   removeFromCart,
   clearCart,
   clearCartError,
-  
+
   // Order Actions
   createOrder,
   getOrderById,
   getUserOrders,
   clearOrderError,
-  
+
   // Admin Actions
   getClients,
   getClientById,
@@ -80,13 +80,13 @@ import {
   sendMessage as sendAdminMessage,
   getMessages,
   clearAdminError,
-  
+
   // Membership Actions
   getPlans as getMembershipPlans,
   subscribe,
   cancelMembership,
   clearMembershipError,
-  
+
   // Fitness Program Actions
   getPrograms,
   getProgramById,
@@ -129,6 +129,17 @@ import {
   addToRecentUploads,
   removeFromRecentUploads,
   resetUploadState,
+
+  // Partner Actions
+  getPartners,
+  getPartnerById,
+  createPartner,
+  updatePartner,
+  deletePartner,
+  clearPartnerError,
+  clearPartnerSuccess,
+  clearCurrentPartner,
+  resetPartnerState,
 } from '../store/slices';
 
 export const useAppDispatch = () => useDispatch();
@@ -619,11 +630,11 @@ export const useGalleryImages = () => {
   }, [dispatch]);
 
   const handleUploadAndAttach = useCallback((files, imageableId, imageableType, additionalData = {}) => {
-    return dispatch(uploadAndAttachImages({ 
-      files, 
-      imageableId, 
-      imageableType, 
-      additionalData 
+    return dispatch(uploadAndAttachImages({
+      files,
+      imageableId,
+      imageableType,
+      additionalData
     }));
   }, [dispatch]);
 
@@ -677,21 +688,21 @@ export const useGalleryImages = () => {
     // Delete operations
     deleteImage: handleDeleteImage,
     bulkDeleteImages: handleBulkDeleteImages,
-    
+
     // Feature operations
     setFeatured: handleSetFeatured,
-    
+
     // Position operations
     updatePosition: handleUpdatePosition,
     reorderImages: handleReorderImages,
-    
+
     // Upload operations
     uploadAndAttach: handleUploadAndAttach,
-    
+
     // Detach and restore operations
     detachImage: handleDetachImage,
     restoreImage: handleRestoreImage,
-    
+
     // Clear operations
     clearDeleteError: handleClearDeleteError,
     clearBulkDeleteResults: handleClearBulkDeleteResults,
@@ -776,11 +787,11 @@ export const useUpload = () => {
     uploadFile: handleUploadFile,
     uploadMultipleFiles: handleUploadMultipleFiles,
     deleteFile: handleDeleteFile,
-    
+
     // Progress updates
     setSingleProgress: handleSetSingleUploadProgress,
     setMultipleProgress: handleSetMultipleUploadProgress,
-    
+
     // Clear operations
     clearUploadedFile: handleClearUploadedFile,
     clearUploadedFiles: handleClearUploadedFiles,
@@ -789,11 +800,11 @@ export const useUpload = () => {
     clearFileDeleteError: handleClearFileDeleteError,
     clearSuccessMessage: handleClearUploadSuccessMessage,
     clearAllUploads: handleClearAllUploads,
-    
+
     // Recent uploads management
     addRecentUpload: handleAddToRecentUploads,
     removeRecentUpload: handleRemoveFromRecentUploads,
-    
+
     // Reset
     resetUploadState: handleResetUploadState,
   };
@@ -821,6 +832,61 @@ export const useChat = () => {
   };
 };
 
+// Partners Hook
+export const usePartners = () => {
+  const dispatch = useAppDispatch();
+  const partners = useAppSelector((state) => state.partners);
+
+  const handleGetPartners = useCallback((params) => {
+    return dispatch(getPartners(params));
+  }, [dispatch]);
+
+  const handleGetPartnerById = useCallback((id) => {
+    return dispatch(getPartnerById(id));
+  }, [dispatch]);
+
+  const handleCreatePartner = useCallback((data) => {
+    return dispatch(createPartner(data));
+  }, [dispatch]);
+
+  const handleUpdatePartner = useCallback((id, data) => {
+    return dispatch(updatePartner({ id, data }));
+  }, [dispatch]);
+
+  const handleDeletePartner = useCallback((id) => {
+    return dispatch(deletePartner(id));
+  }, [dispatch]);
+
+  const handleClearError = useCallback(() => {
+    dispatch(clearPartnerError());
+  }, [dispatch]);
+
+  const handleClearSuccess = useCallback(() => {
+    dispatch(clearPartnerSuccess());
+  }, [dispatch]);
+
+  const handleClearCurrentPartner = useCallback(() => {
+    dispatch(clearCurrentPartner());
+  }, [dispatch]);
+
+  const handleResetState = useCallback(() => {
+    dispatch(resetPartnerState());
+  }, [dispatch]);
+
+  return {
+    ...partners,
+    getPartners: handleGetPartners,
+    getPartnerById: handleGetPartnerById,
+    createPartner: handleCreatePartner,
+    updatePartner: handleUpdatePartner,
+    deletePartner: handleDeletePartner,
+    clearError: handleClearError,
+    clearSuccess: handleClearSuccess,
+    clearCurrentPartner: handleClearCurrentPartner,
+    resetState: handleResetState,
+  };
+};
+
 // Combined Hook for easy access to all state
 export const useAppState = () => {
   const auth = useAuth();
@@ -838,6 +904,7 @@ export const useAppState = () => {
   const upload = useUpload();
   const notifications = useNotifications();
   const chat = useChat();
+  const partners = usePartners();
 
   return {
     auth,
@@ -855,5 +922,6 @@ export const useAppState = () => {
     upload,
     notifications,
     chat,
+    partners,
   };
 };

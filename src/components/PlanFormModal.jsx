@@ -553,7 +553,7 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="is_featured" style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                <label htmlFor="is_featured" className="checkbox-label">
                   <input
                     type="checkbox"
                     id="is_featured"
@@ -561,9 +561,8 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                     checked={formData.is_featured === 1}
                     onChange={handleChange}
                     disabled={loading}
-                    style={{ cursor: 'pointer' }}
                   />
-                  Featured Plan
+                  <span>Featured Plan</span>
                 </label>
               </div>
 
@@ -574,7 +573,7 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
 
               <div className="form-group full-width">
                 <label htmlFor="equipment-input">Add Equipment</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="array-input-group">
                   <input
                     type="text"
                     id="equipment-input"
@@ -583,56 +582,25 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                     onKeyPress={handleEquipmentKeyPress}
                     placeholder="Type equipment and press Enter"
                     disabled={loading}
-                    style={{ flex: 1 }}
                   />
                   <button
                     type="button"
                     onClick={handleAddEquipment}
-                    className="btn-icon"
+                    className="add-btn"
                     disabled={loading || !equipmentInput.trim()}
-                    style={{
-                      padding: '8px 16px',
-                      background: 'var(--accent-color)',
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
                   >
-                    +
+                    + Add
                   </button>
                 </div>
                 {formData.equipment_required.length > 0 && (
-                  <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <div className="tags-container">
                     {formData.equipment_required.map((equipment, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          padding: '6px 12px',
-                          background: '#2c2c2c',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      >
+                      <div key={index} className="tag-chip">
                         <span>{equipment}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveEquipment(index)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#ff4444',
-                            cursor: 'pointer',
-                            padding: '0',
-                            display: 'flex',
-                            alignItems: 'center'
-                          }}
+                          className="remove-tag"
                         >
                           <X size={16} />
                         </button>
@@ -663,39 +631,17 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                   disabled={loading}
                 />
                 {imagePreview && (
-                  <div style={{ marginTop: '10px', position: 'relative', display: 'inline-block' }}>
+                  <div className="image-preview-container">
                     <img 
                       src={imagePreview} 
                       alt="Main Preview" 
-                      style={{ 
-                        width: '150px', 
-                        height: '150px', 
-                        objectFit: 'cover', 
-                        borderRadius: '8px',
-                        border: '1px solid #3a3a3a'
-                      }} 
+                      className="image-preview"
                     />
                     <button
                       type="button"
                       onClick={clearMainImage}
                       disabled={loading}
-                      style={{
-                        position: 'absolute',
-                        top: '-8px',
-                        right: '-8px',
-                        width: '28px',
-                        height: '28px',
-                        borderRadius: '50%',
-                        background: '#ff4444',
-                        border: 'none',
-                        color: '#fff',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px',
-                        fontWeight: 'bold'
-                      }}
+                      className="remove-image-btn"
                       title="Remove main image"
                     >
                       ×
@@ -718,87 +664,34 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                 
                 {/* Gallery Images Preview */}
                 {galleryPreviews.length > 0 && (
-                  <div style={{ marginTop: '16px' }}>
-                    <h4 style={{ marginBottom: '12px', fontSize: '16px', color: '#fff' }}>
+                  <div className="gallery-section">
+                    <h4 className="gallery-title">
                       Gallery Images ({getTotalGalleryImagesCount()})
                     </h4>
-                    <div style={{ 
-                      display: 'grid', 
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-                      gap: '12px', 
-                      marginTop: '12px'
-                    }}>
+                    <div className="gallery-previews">
                       {/* Existing Images (from server) */}
                       {existingGalleryImages.map((image, index) => (
-                        <div key={`existing-${image.id}`} style={{ position: 'relative' }}>
+                        <div key={`existing-${image.id}`} className="gallery-preview-item">
                           <img 
                             src={image.url || image.image_url || image} 
                             alt={`Gallery ${index + 1}`} 
-                            style={{ 
-                              width: '100%', 
-                              height: '120px', 
-                              objectFit: 'cover', 
-                              borderRadius: '8px',
-                              border: '1px solid #3a3a3a'
-                            }} 
+                            className="gallery-preview"
                           />
-                          <div style={{
-                            position: 'absolute',
-                            top: '4px',
-                            right: '4px',
-                            display: 'flex',
-                            gap: '4px'
-                          }}>
+                          <div className="gallery-item-actions">
                             {image.is_featured && (
-                              <div style={{
-                                background: 'var(--accent-color)',
-                                color: '#000',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                fontSize: '10px',
-                                fontWeight: 'bold'
-                              }}>
-                                Featured
-                              </div>
+                              <span className="existing-image-badge">Featured</span>
                             )}
                             <button
                               type="button"
                               onClick={() => handleDeleteExistingImage(image)}
                               disabled={isDeleting}
-                              style={{
-                                width: '28px',
-                                height: '28px',
-                                borderRadius: '50%',
-                                background: '#ff4444',
-                                border: 'none',
-                                color: '#fff',
-                                cursor: isDeleting ? 'not-allowed' : 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                                opacity: isDeleting ? 0.6 : 1
-                              }}
+                              className="remove-image-btn"
                               title="Delete image"
                             >
                               {isDeleting ? '...' : <Trash2 size={14} />}
                             </button>
                           </div>
-                          <div style={{
-                            position: 'absolute',
-                            bottom: '4px',
-                            left: '4px',
-                            right: '4px',
-                            background: 'rgba(0,0,0,0.7)',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            color: '#fff',
-                            textOverflow: 'ellipsis',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap'
-                          }}>
+                          <div className="gallery-item-name">
                             {image.file_name || `Image ${index + 1}`}
                           </div>
                         </div>
@@ -806,75 +699,29 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                       
                       {/* New Images (not yet saved to server) */}
                       {formData.gallery_images.map((file, index) => (
-                        <div key={`new-${index}`} style={{ position: 'relative' }}>
+                        <div key={`new-${index}`} className="gallery-preview-item new-image">
                           <img 
                             src={galleryPreviews[existingGalleryImages.length + index]} 
                             alt={`New ${index + 1}`} 
-                            style={{ 
-                              width: '100%', 
-                              height: '120px', 
-                              objectFit: 'cover', 
-                              borderRadius: '8px',
-                              border: '2px dashed var(--accent-color)'
-                            }} 
+                            className="gallery-preview"
                           />
                           <button
                             type="button"
                             onClick={() => removeNewGalleryImage(index)}
                             disabled={loading}
-                            style={{
-                              position: 'absolute',
-                              top: '-8px',
-                              right: '-8px',
-                              width: '28px',
-                              height: '28px',
-                              borderRadius: '50%',
-                              background: '#ff4444',
-                              border: 'none',
-                              color: '#fff',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '16px',
-                              fontWeight: 'bold'
-                            }}
+                            className="remove-image-btn"
                             title="Remove image"
                           >
                             ×
                           </button>
-                          <div style={{
-                            position: 'absolute',
-                            bottom: '4px',
-                            left: '4px',
-                            right: '4px',
-                            background: 'rgba(0,0,0,0.7)',
-                            padding: '4px',
-                            borderRadius: '4px',
-                            fontSize: '10px',
-                            color: '#fff',
-                            textAlign: 'center'
-                          }}>
-                            New
-                          </div>
+                          <div className="gallery-item-name new-badge">New</div>
                         </div>
                       ))}
                     </div>
                     
                     {/* Warning for featured images */}
                     {existingGalleryImages.some(img => img.is_featured) && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        marginTop: '12px',
-                        padding: '8px 12px',
-                        background: 'rgba(255, 193, 7, 0.1)',
-                        border: '1px solid rgba(255, 193, 7, 0.3)',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        color: '#ffc107'
-                      }}>
+                      <div className="warning-message">
                         <AlertTriangle size={16} />
                         <span>Deleting a featured image will automatically set another image as featured</span>
                       </div>
@@ -898,7 +745,14 @@ const PlanFormModal = ({ isOpen, onClose, plan, onSave }) => {
                 className="btn-submit"
                 disabled={loading || isDeleting}
               >
-                {loading ? 'Saving...' : plan ? 'Update Plan' : 'Create Plan'}
+                {loading ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    {plan ? 'Updating...' : 'Creating...'}
+                  </>
+                ) : (
+                  plan ? 'Update Plan' : 'Create Plan'
+                )}
               </button>
             </div>
           </form>

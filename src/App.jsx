@@ -11,11 +11,14 @@ import AdminCategories from './pages/AdminCategories';
 import AdminWorkouts from './pages/AdminWorkouts';
 import AdminMeals from './pages/AdminMeals';
 import AdminPlans from './pages/AdminPlans';
+import AdminPartners from './pages/AdminPartners';
 import Messages from './pages/Messages';
 import ForgotPassword from './pages/ForgotPassword';
 import ConfirmPassword from './pages/ConfirmPassword';
 import AuthCode from './pages/AuthCode';
 import Products from './pages/Products';
+import Partners from './pages/Partners';
+import PartnerDetail from './pages/PartnerDetail';
 import UserLayout from './components/UserLayout';
 import AdminLayout from './components/AdminLayout';
 import Navbar from './components/Navbar';
@@ -40,18 +43,18 @@ import ContactsPage from './pages/admin/ContactsPage';
 
 function AppContent() {
   const location = useLocation();
-  const publicPages = ['/', '/fitness-programs', '/meals', '/meal', '/plans', '/plan', '/products', '/product', '/membership', '/cart', '/checkout'];
+  const publicPages = ['/', '/fitness-programs', '/meals', '/meal', '/plans', '/plan', '/products', '/product', '/partners', '/membership', '/cart', '/checkout'];
   const isLanding = location.pathname === '/';
-  const showNavbar = isLanding || publicPages.some(path => 
-    location.pathname === path || 
-    location.pathname.startsWith(path + '/') || 
-    location.pathname.startsWith(path + '?') || 
+  const showNavbar = isLanding || publicPages.some(path =>
+    location.pathname === path ||
+    location.pathname.startsWith(path + '/') ||
+    location.pathname.startsWith(path + '?') ||
     location.pathname.startsWith(path + '#')
   );
-  const showFooter = isLanding || publicPages.some(path => 
-    location.pathname === path || 
-    location.pathname.startsWith(path + '/') || 
-    location.pathname.startsWith(path + '?') || 
+  const showFooter = isLanding || publicPages.some(path =>
+    location.pathname === path ||
+    location.pathname.startsWith(path + '/') ||
+    location.pathname.startsWith(path + '?') ||
     location.pathname.startsWith(path + '#')
   );
 
@@ -68,6 +71,8 @@ function AppContent() {
         <Route path="/meals" element={<Meals />} />
         <Route path="/plans" element={<Plans />} />
         <Route path="/products" element={<Products />} />
+        <Route path="/partners" element={<Partners />} />
+        <Route path="/partners/:id" element={<PartnerDetail />} />
         <Route path="/membership" element={<Membership />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
@@ -79,7 +84,7 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth-code" element={<AuthCode />} />
         <Route path="/confirm-password" element={<ConfirmPassword />} />
-        <Route path="/dashboard/*" element={<UserLayout />}> 
+        <Route path="/dashboard/*" element={<UserLayout />}>
           <Route index element={<Navigate to="my-orders" replace />} />
           <Route path="" element={<Dashboard />}>
             <Route path="my-orders" element={<MyOrders />} />
@@ -90,7 +95,7 @@ function AppContent() {
             <Route path="logout" element={<Logout />} />
           </Route>
         </Route>
-        <Route path="/admin/*" element={<AdminLayout />}> 
+        <Route path="/admin/*" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
           <Route path="messages" element={<Messages />} />
           <Route path="contacts" element={<ContactsPage />} />
@@ -99,6 +104,7 @@ function AppContent() {
           <Route path="workouts" element={<AdminWorkouts />} />
           <Route path="meals" element={<AdminMeals />} />
           <Route path="plans" element={<AdminPlans />} />
+          <Route path="partners" element={<AdminPartners />} />
           <Route path="page" element={<AdminPage />} />
         </Route>
       </Routes>
